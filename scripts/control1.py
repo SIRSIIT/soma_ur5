@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import time
-import roslib; roslib.load_manifest('ur_driver')
+import roslib; roslib.load_manifest('soma_ur5')
 import rospy
 import actionlib
 from control_msgs.msg import *
@@ -10,9 +10,7 @@ from math import pi
 import pymouse
 
 class ur5_control:
-    def __init__(self):  
-    
-
+    def __init__(self):
         rospy.init_node("test_move", anonymous=True, disable_signals=True)
         self.client = actionlib.SimpleActionClient('/vel_based_pos_traj_controller/follow_joint_trajectory', FollowJointTrajectoryAction)
         print "Waiting for server..."
@@ -28,6 +26,7 @@ class ur5_control:
         self.g = FollowJointTrajectoryGoal()
         self.g.trajectory = JointTrajectory()
         self.g.trajectory.joint_names = self.JOINT_NAMES
+        
 
         
     

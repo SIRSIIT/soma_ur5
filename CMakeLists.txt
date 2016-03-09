@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(soma_ur5)
+add_definitions(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -9,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   tf
   ur_modern_driver
+  ur_kinematics
 )
 
 ## System dependencies are found with CMake's conventions
@@ -101,10 +103,10 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES soma_ur5
-#  CATKIN_DEPENDS roscpp rospy tf ur_modern_driver
-#  DEPENDS system_lib
+  INCLUDE_DIRS include
+  LIBRARIES soma_ur5
+  CATKIN_DEPENDS roscpp rospy tf ur_modern_driver
+  DEPENDS system_lib
 )
 
 ###########
@@ -116,7 +118,11 @@ catkin_package(
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
+  include
 )
+link_directories(
+../../devel/lib
+lib)
 
 ## Declare a C++ library
 # add_library(soma_ur5
@@ -129,16 +135,30 @@ include_directories(
 # add_dependencies(soma_ur5 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(soma_ur5_node src/soma_ur5_node.cpp)
+ add_executable(controller src/controller.cpp)
+ add_executable(haptic src/haptic.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(soma_ur5_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+ add_dependencies(controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(haptic ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(soma_ur5_node
-#   ${catkin_LIBRARIES}
-# )
+ target_link_libraries(controller
+   ${catkin_LIBRARIES}
+   ur5_kin
+ )
+
+
+ target_link_libraries(haptic
+   ${catkin_LIBRARIES}
+   drd
+   dhd
+   pthread
+   usb-1.0
+ )
+
+
 
 #############
 ## Install ##
