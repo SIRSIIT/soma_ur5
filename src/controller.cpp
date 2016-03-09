@@ -30,7 +30,7 @@ bool UR5_Control::send_joint_command(double j_com[6]){
 
     control_msgs::FollowJointTrajectoryGoal jt;
     trajectory_msgs::JointTrajectoryPoint jp;
-    jt.trajectory.header.stamp=ros::Time::now()+ros::Duration(0.01);
+    jt.trajectory.header.stamp=ros::Time::now()+ros::Duration(0.1);
     jt.trajectory.joint_names=cur_joints.name;
 
     jp.positions=cur_joints.position;
@@ -44,7 +44,8 @@ bool UR5_Control::send_joint_command(double j_com[6]){
     jp.time_from_start=ros::Duration(0.1);
 
     jt.trajectory.points.push_back(jp);
-    act_client->sendGoal(jt);
+    //act_client->sendGoal(jt);
+    act_client->sendGoalAndWait(jt,ros::Duration(0.4));
 
 
 }

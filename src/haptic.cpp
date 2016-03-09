@@ -154,6 +154,7 @@ bool Haptic::haptic_loop(){
     GetHapticInfo(h_pose);
     SetHaptic();
     com_pose=scale_pose(h_pose,"h2r");
+    com_pose.orientation=ee_pose.orientation;
     pub_robot_com.publish(com_pose);
 }
 
