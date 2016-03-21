@@ -22,7 +22,7 @@
 #include <actionlib/client/action_client.h>
 #include <actionlib/client/simple_action_client.h>
 #include <ctime>
-//#define PI 3.14159265
+//#define M_PI 3.14159265
 
 class UR5_Control {
 

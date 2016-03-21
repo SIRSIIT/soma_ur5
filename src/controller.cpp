@@ -10,7 +10,8 @@
 
 UR5_Control::UR5_Control(){
     this->nh=new ros::NodeHandle();
-    jo={2,1,0,3,4,5}; //'elbow_joint', 'shoulder_lift_joint', 'shoulder_pan_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint'
+    //jo={2,1,0,3,4,5}; //'elbow_joint', 'shoulder_lift_joint', 'shoulder_pan_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint'
+    jo={0,1,2,3,4,5};
     sub_joints = nh->subscribe("joint_states", 1000, &UR5_Control::joint_state_callback, this);
     pub_ee_pose = nh->advertise<geometry_msgs::Pose>("ee_pose",5);
     ROS_INFO("Loading parameters...");
@@ -34,7 +35,7 @@ bool UR5_Control::send_joint_command(double j_com[6]){
     jt.trajectory.joint_names=cur_joints.name;
 
     jp.positions=cur_joints.position;
-    jp.velocities=std::vector<double>(6,0);
+    jp.velocities=std::vector<double>(6,0.1);
     jp.accelerations=std::vector<double>(6,0);
     jp.effort=std::vector<double>(6,0);
 
@@ -139,11 +140,11 @@ bool UR5_Control::choose_sol(int nsols,double* sols, double* best,double &max_co
         cost=0;
         if(valid_jconf(&sols[i*6])){
             for(int j=0;j<6;j++){
-                if((cur_j_array[j]<-PI && sols[i*6+j]>-0.1) || (sols[i*6+j]>PI && cur_j_array[j]<0.1)){
-                    sols[i*6+j]-=2*PI;
+                if((cur_j_array[j]<-M_PI && sols[i*6+j]>-0.1) || (sols[i*6+j]>M_PI && cur_j_array[j]<0.1)){
+                    sols[i*6+j]-=2*M_PI;
                 }
-                else if((cur_j_array[j]>PI && sols[i*6+j]<0.1) || ( sols[i*6+j]<-PI && cur_j_array[j]>-0.1)){
-                    sols[i*6+j]+=2*PI;
+                else if((cur_j_array[j]>M_PI && sols[i*6+j]<0.1) || ( sols[i*6+j]<-M_PI && cur_j_array[j]>-0.1)){
+                    sols[i*6+j]+=2*M_PI;
                 }                
                 cost+=fabs(cur_j_array[j]-sols[i*6+j]);
             }
