@@ -101,16 +101,14 @@ int Haptic::initialize_haptic(){
         dhdSleep (2.0);
         return -1;
     }
-    /*
-    // start robot control loop
+
+  /*  // start robot control loop
     if (drdStart() < 0) {
         printf ("error: control loop failed to start properly (%s)\n", dhdErrorGetLastStr ());
         dhdSleep (2.0);
         return -1;
     }
-*/
-
-
+    */
         dhdEnableForce(DHD_ON);
 
 
@@ -140,13 +138,13 @@ bool Haptic::SetHaptic(){
     geometry_msgs::Pose see_pose=scale_pose(ee_pose,"r2h");
     ROS_INFO("%.5f %.5f %.5f",see_pose.position.x-hap_pose.position.x,
              see_pose.position.y-hap_pose.position.y,
-             see_pose.position.z-hap_pose.position.z+1.0);
-    dhdSetForceAndTorqueAndGripperForce (-20*(hap_pose.position.x-see_pose.position.x),
-                                         -20*(hap_pose.position.y-see_pose.position.y),
-                                         -20*(hap_pose.position.z-see_pose.position.z)+1.0,
-                                         0.0, 0.0, 0.0, 0.0);
+             see_pose.position.z-hap_pose.position.z);
+    dhdEnableForce(DHD_ON);
+    dhdSetForceAndTorqueAndGripperForce (-100*(hap_pose.position.x-see_pose.position.x),
+                                         -100*(hap_pose.position.y-see_pose.position.y),
+                                         -100*(hap_pose.position.z-see_pose.position.z)+2,
+                                         0.0, 0.0, 0.0, -0.1);
  //   ROS_INFO("Setting FOrce");
-
 }
 
 bool Haptic::haptic_loop(){

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+
+  <rosparam file="$(find soma_ur5)/config/ur5_settings.yaml" command="load"/>
+
+  <!-- send robot urdf to param server -->
+  <include file="$(find soma_ur5)/launch/ur5_gazebo.launch"/>
+   <include file="$(find soma_ur5)/launch/ur5_control_gazebo.launch"/>
+
+  <!-- push robot_description to factory and spawn robot in gazebo -->
+  
+<node pkg="soma_ur5" type="gazebo_bridge" name="gazebo_bridge"/>
+<node pkg="soma_ur5" type="controller" name="controller"/>
+<node pkg="soma_ur5" type="haptic" name="haptic"/>
+
+</launch>

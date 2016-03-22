@@ -10,22 +10,50 @@
 
 UR5_Control::UR5_Control(){
     this->nh=new ros::NodeHandle();
-    //jo={2,1,0,3,4,5}; //'elbow_joint', 'shoulder_lift_joint', 'shoulder_pan_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint'
-    jo={0,1,2,3,4,5};
+
     sub_joints = nh->subscribe("joint_states", 1000, &UR5_Control::joint_state_callback, this);
+
+    init=false;    using_gazebo=false;
+    cur_joints.name.resize(6);cur_joints.position.resize(6);
+    cur_joints.velocity.resize(6);cur_joints.effort.resize(6);
+
     pub_ee_pose = nh->advertise<geometry_msgs::Pose>("ee_pose",5);
+
+
+    config_server.setCallback( boost::bind(&UR5_Control::config_cb, this, _1, _2) );
+
+    while(!init){
+        ros::spinOnce();
+        ros::Rate(10).sleep();
+    }
+    if(using_gazebo)    jo={2,1,0,3,4,5}; //'elbow_joint', 'shoulder_lift_joint', 'shoulder_pan_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint'
+    else jo={0,1,2,3,4,5};
+    speed_gain=0;
+
+    speed_command = nh->advertise<trajectory_msgs::JointTrajectory>("/ur_driver/joint_speed",5);
     ROS_INFO("Loading parameters...");
     nh->getParam("limits/workspace", map_ws_lim);
     nh->getParam("limits/joints", map_j_lim);
     nh->getParam("control_topic", control_topic);
     nh->getParam("limits/max_angle", max_angle);
 
-    act_client=new actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>(*nh,control_topic);    
-    act_client->waitForServer();
-    ROS_INFO("client is up");
+    act_client=new actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>(*nh,control_topic);
+    //act_client->waitForServer();
+    //ROS_INFO("client is up");
     sub_goal_pose= nh->subscribe("goal_pose", 1000, &UR5_Control::goal_pose_callback, this);
 
 }
+
+bool UR5_Control::send_speed_command(double j_com[6]){
+    trajectory_msgs::JointTrajectory traj;
+    traj.points.resize(1);
+    traj.header.stamp=ros::Time::now();
+    if(speed_gain==0) ROS_WARN_THROTTLE(1.0,"speed_gain is set to zero. Fix: rosrun dynamic_reconfigure dynparam set %s speed_gain 0.01",ros::this_node::getName().c_str());
+
+    for(int i=0;i<6;i++) traj.points.at(0).velocities.push_back(j_com[i]*speed_gain);
+    speed_command.publish(traj);
+}
+
 
 bool UR5_Control::send_joint_command(double j_com[6]){
 
@@ -80,8 +108,21 @@ bool UR5_Control::valid_jconf(double joints[6]){
     return true;
 }
 //Joint Callback
-void UR5_Control::joint_state_callback(const sensor_msgs::JointState::ConstPtr &msg){
-    cur_joints=*msg;
+void UR5_Control::joint_state_callback(const sensor_msgs::JointState::ConstPtr &msg){    
+
+    if(!init){
+        if(msg->name.at(0)=="elbow_joint") using_gazebo=true;
+        else using_gazebo=false;
+        init=true;
+    }
+    //cur_joints=*msg;
+    cur_joints.header=msg->header;
+    for(int i=0;i<6;i++){
+        cur_joints.name.at(i)=msg->name.at(jo[i]);
+        cur_joints.position.at(i)=msg->position.at(jo[i]);
+        cur_joints.velocity.at(i)=msg->velocity.at(jo[i]);
+        cur_joints.effort.at(i)=msg->effort.at(jo[i]);
+    }
 
     double q[6];
     double pos[16];
@@ -112,7 +153,13 @@ void UR5_Control::joint_state_callback(const sensor_msgs::JointState::ConstPtr &
 
     pub_ee_pose.publish(ee_pose);
 
-    ROS_DEBUG_STREAM_THROTTLE(1,print_matrix(4,4,pos,"EE_pose"));
+    ROS_INFO_STREAM_THROTTLE(1,print_matrix(4,4,pos,"EE_pose"));
+
+    double T[6][16];
+    ur_kinematics::forward_all(q,T[0],T[1],T[2],T[3],T[4],T[5]);
+    for (int i=0;i<6;i++) {
+        ROS_INFO_STREAM(print_matrix(4,4,T[i],"t"+std::to_string(i)+":"));
+    }
 
 }
 
@@ -145,7 +192,7 @@ bool UR5_Control::choose_sol(int nsols,double* sols, double* best,double &max_co
                 }
                 else if((cur_j_array[j]>M_PI && sols[i*6+j]<0.1) || ( sols[i*6+j]<-M_PI && cur_j_array[j]>-0.1)){
                     sols[i*6+j]+=2*M_PI;
-                }                
+                }
                 cost+=fabs(cur_j_array[j]-sols[i*6+j]);
             }
             if(cost<bcost) {
@@ -168,71 +215,131 @@ bool UR5_Control::choose_sol(int nsols,double* sols, double* best,double &max_co
     }
 }
 
+void UR5_Control::config_cb(soma_ur5::dyn_ur5_controllerConfig &config, uint32_t level) {
+    ROS_DEBUG("Reconfigure Request.");
+        speed_gain=config.speed_gain;
+
+
+}
+
+
 void UR5_Control::goal_pose_callback(const geometry_msgs::Pose::ConstPtr &msg){
 
-    std::clock_t    start     = std::clock();
-    ROS_DEBUG_STREAM("T1: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000));
     double T_pose[16];
-    double sols[36];
-    tf::Quaternion tf_quat;
-
-    tf::quaternionMsgToTF(msg->orientation,tf_quat);
-    tf::Transform Tg;
-    Tg.setRotation(tf_quat);
-    Tg.setOrigin(tf::Vector3(msg->position.x,msg->position.y,msg->position.z));
-
-    // Tg=Tb_ee; //Try giving the current pose to inverse kinematics
-    tf::Vector3 el,dv;
-    dv=Tg.getOrigin();
-    el=Tg.getBasis().getRow(0);
-    T_pose[0]=el.getX();
-    T_pose[1]=el.getY();
-    T_pose[2]=el.getZ();
-    T_pose[3]=dv.getX();
-    el=Tg.getBasis().getRow(1);
-    T_pose[4]=el.getX();
-    T_pose[5]=el.getY();
-    T_pose[6]=el.getZ();
-    T_pose[7]=dv.getY();
-    el=Tg.getBasis().getRow(2);
-    T_pose[8]=el.getX();
-    T_pose[9]=el.getY();
-    T_pose[10]=el.getZ();
-    T_pose[11]=dv.getZ();
-    T_pose[12]=0;
-    T_pose[13]=0;
-    T_pose[14]=0;
-    T_pose[15]=1;
-
-    ROS_DEBUG_STREAM("T2: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000));
+    utils::pose2array(*msg,T_pose);
 
     ROS_DEBUG_STREAM(print_matrix(4,4,T_pose,"Goal_el:"));
 
 
-    int num_sols=ur_kinematics::inverse(T_pose,sols);
+    int solver=UR5_Control::JACOBIAN;
+    double comm[6];
+    switch (solver){
+    case(UR5_Control::CLOSED_FORM):
+        closed_form(T_pose,comm);
+        break;
+    case(UR5_Control::JACOBIAN):
+        jac_based(T_pose,comm);
+        break;
+    }
+}
 
+Vector6d UR5_Control::fwd_kin(double q[6]){
+    double r,p,y;
+    Vector6d fw;
+    double T_j[16];
+    ur_kinematics::forward(q,T_j);
+    tf::Matrix3x3(T_j[0],T_j[1],T_j[2],
+            T_j[4],T_j[5],T_j[6],
+            T_j[8],T_j[9],T_j[10]).getRPY(r,p,y);
+    fw << T_j[3], T_j[7], T_j[11], r, p, y;
+    return fw;
+
+}
+
+void UR5_Control::calculate_jac(double cur_q[6], Matrix6d &J){
+
+    double h=0.01;
+    double next_q[6];
+
+    Vector6d cur_c,nc;
+
+    cur_c=fwd_kin(cur_q);
+
+    for(int i=0;i<6;i++) {
+        for(int j=0;j<6;j++) {
+            next_q[j]=cur_q[j];
+        }
+        next_q[i]+=h;
+        nc=fwd_kin(next_q);
+        J.col(i) = 1/h*(nc-cur_c).col(0);
+    }
+}
+
+bool UR5_Control::jac_based(double *goal, double *comm){
+
+
+    tf::Transform T_cur=Tb_ee;
+    tf::Transform T_goal;
+    geometry_msgs::Pose p_tmp;
+    double cur_q[6];
+    double rc,pc,yc,rg,pg,yg;
+    Vector6d delta_x,delta_th;
+    double delta_th_array[6];
+
+    for(int i=0;i<6;i++) {
+        cur_q[i]=cur_joints.position.at(i);
+    }
+   // ROS_INFO("cur q: %.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f",
+   //          cur_q[0],cur_q[1],cur_q[2],cur_q[3],cur_q[4],cur_q[5]);
+
+    T_cur.getBasis().getRPY(rc,pc,yc);
+
+    Matrix6d Jac;
+    calculate_jac(cur_q,Jac);
+ //   ROS_INFO_STREAM("J:" << std::endl << Jac);
+
+    utils::array2pose(goal,p_tmp,T_goal);
+    T_goal.getBasis().getRPY(rg,pg,yg);
+
+    delta_x  << T_goal.getOrigin().getX()-T_cur.getOrigin().getX(),
+            T_goal.getOrigin().getY()-T_cur.getOrigin().getY(),
+            T_goal.getOrigin().getZ()-T_cur.getOrigin().getZ(),
+            rg-rc,pg-pc,yg-yc;
+
+ //   ROS_INFO_STREAM("delta_x:" << delta_x);
+
+    delta_th=utils::pseudoinv(Jac)*delta_x;
+    //delta_th=Jac.transpose()*delta_x;
+//    ROS_INFO_STREAM("delta_th:" << delta_th);
+
+    for (int i=0;i<6;i++) {
+        delta_th_array[i]=delta_th(i);
+    }
+    send_speed_command(delta_th_array);
+}
+
+
+
+
+bool UR5_Control::closed_form(double *goal, double *comm){
+    double sols[36];
+    int num_sols=ur_kinematics::inverse(goal,sols);
     if(num_sols==0){
         ROS_ERROR("No solution");
-        return;
+        return false;
     }
 
     double best_sol[6];
     double max_cost;
     if(choose_sol(num_sols,sols,best_sol,max_cost)){
-        ROS_DEBUG_STREAM("T3: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000));
         ROS_INFO_STREAM("Moving to: " << best_sol[0] << ","<< best_sol[1] << ","<< best_sol[2] << ","<< best_sol[3] << ","<< best_sol[4] << ","<< best_sol[5] << " max_cost: " << max_cost);
-        if(max_cost<max_angle) send_joint_command(best_sol);
+        if(max_cost<max_angle) comm=best_sol;
         else ROS_ERROR("Target too far away");
-        ROS_DEBUG_STREAM("T4: " << (std::clock() - start) / (double)(CLOCKS_PER_SEC / 1000));
     }
     else {
         ROS_ERROR("No valid solution");
-        return;
+        return false;
     }
-
-
-
-
 
 }
 
