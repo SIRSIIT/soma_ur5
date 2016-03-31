@@ -7,11 +7,15 @@ Haptic::Haptic(){
 
     pub_hap_pose=nh->advertise<geometry_msgs::PoseStamped>("haptic_pose",5);
     pub_robot_com=nh->advertise<geometry_msgs::PoseStamped>("/goal_pose",5);
+    pub_grip=nh->advertise<std_msgs::Float64>("grip_cmd",5);
+
     sub_pose= nh->subscribe("ee_pose", 1000, &Haptic::robot_pose_callback, this);
+    sub_grip= nh->subscribe("grip_feedback", 1000, &Haptic::grip_callback, this);
+
     nh->getParam("scale_factor", scale_factor);
 
     pedal_on=false;
-    goto_initial();
+ //   goto_initial();
 
 }
 Haptic::~Haptic(){
@@ -71,6 +75,10 @@ bool Haptic::move_haptic(geometry_msgs::Pose in){
 
 void Haptic::robot_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &msg){
     ee_pose=*msg;
+}
+
+void Haptic::grip_callback(const std_msgs::Float64::ConstPtr &msg){
+    grip_val=msg->data;
 }
 
 int Haptic::initialize_haptic(){
@@ -133,6 +141,11 @@ bool Haptic::GetHapticInfo(geometry_msgs::Pose &h_pose){
     hap_pose.header.stamp=ros::Time::now();
     hap_pose.header.frame_id="base_link";
     pub_hap_pose.publish(hap_pose);
+    std_msgs::Float64 grip_pos;
+    double tmp[1];
+    dhdGetGripperAngleDeg(tmp);
+    grip_pos.data=tmp[0];
+    pub_grip.publish(grip_pos);
     if(dhdGetButton(1)==1){
         if(pedal_on==false){
             hap_pose_initial=hap_pose;
@@ -155,7 +168,8 @@ bool Haptic::SetHaptic(){
     //          see_pose.position.y-hap_pose.pose.position.y,
     //          see_pose.position.z-hap_pose.pose.position.z);
     dhdEnableForce(DHD_ON);
-    dhdSetForceAndTorqueAndGripperForce(0.0,0.0,0.0,0.0,0.0,0.0,0.0);
+    dhdSetForceAndTorqueAndGripperForce(0.0,0.0,0.0,0.0,0.0,0.0,grip_val);
+
 
     // dhdSetGravityCompensation();
     // dhdSetForceAndTorqueAndGripperForce (-100*(hap_pose.pose.position.x-see_pose.position.x),

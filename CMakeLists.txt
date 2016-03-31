@@ -140,13 +140,14 @@ lib)
  add_executable(controller src/controller.cpp)
  add_executable(haptic src/haptic.cpp)
  add_executable(gazebo_bridge src/gazebo_bridge.cpp)
+ add_executable(pisa_hand_bridge src/pisa_hand_bridge.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
  add_dependencies(controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(haptic ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(gazebo_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
+ add_dependencies(pisa_hand_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 
 ## Specify libraries to link a library or executable target against
@@ -168,6 +169,9 @@ lib)
    ${catkin_LIBRARIES}
  )
 
+ target_link_libraries(pisa_hand_bridge
+   ${catkin_LIBRARIES}
+ )
 
 #############
 ## Install ##
