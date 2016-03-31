@@ -17,7 +17,7 @@ UR5_Control::UR5_Control(){
     cur_joints.name.resize(6);cur_joints.position.resize(6);
     cur_joints.velocity.resize(6);cur_joints.effort.resize(6);
 
-    pub_ee_pose = nh->advertise<geometry_msgs::Pose>("ee_pose",5);
+    pub_ee_pose = nh->advertise<geometry_msgs::PoseStamped>("ee_pose",5);
 
 
     config_server.setCallback( boost::bind(&UR5_Control::config_cb, this, _1, _2) );
@@ -100,7 +100,7 @@ bool UR5_Control::valid_jconf(double joints[6]){
                 T[i][7]<map_ws_lim["y_min"] || T[i][7]>map_ws_lim["y_max"] ||
                 T[i][11]<map_ws_lim["z_min"] || T[i][11]>map_ws_lim["z_max"]) {
             ROS_WARN("Link %d outside workspace",i);
-            ROS_WARN_STREAM(print_matrix(4,4,T[i],"Pose (invalid)"));
+            ROS_WARN_STREAM(utils::print_matrix(4,4,T[i],"Pose (invalid)"));
             return false;
         }
     }
@@ -141,41 +141,33 @@ void UR5_Control::joint_state_callback(const sensor_msgs::JointState::ConstPtr &
     Tb_ee.setOrigin(tf::Vector3(pos[3],pos[7],pos[11]));
     tf_br.sendTransform(tf::StampedTransform(Tb_ee,ros::Time::now(),"base_link","ee_frame"));
 
-    geometry_msgs::Pose ee_pose;
+    geometry_msgs::PoseStamped ee_pose;
     geometry_msgs::Quaternion ee_orien;
 
-    ee_pose.position.x=pos[3];
-    ee_pose.position.y=pos[7];
-    ee_pose.position.z=pos[11];
+    ee_pose.pose.position.x=pos[3];
+    ee_pose.pose.position.y=pos[7];
+    ee_pose.pose.position.z=pos[11];
 
     tf::quaternionTFToMsg(Tb_ee.getRotation(),ee_orien);
-    ee_pose.orientation=ee_orien;
+    ee_pose.pose.orientation=ee_orien;
+    ee_pose.header.stamp=ros::Time::now();
+    ee_pose.header.frame_id="base_link";
+
 
     pub_ee_pose.publish(ee_pose);
 
-    ROS_INFO_STREAM_THROTTLE(1,print_matrix(4,4,pos,"EE_pose"));
+    ROS_INFO_STREAM_THROTTLE(1,utils::print_matrix(4,4,pos,"EE_pose"));
 
     double T[6][16];
     ur_kinematics::forward_all(q,T[0],T[1],T[2],T[3],T[4],T[5]);
     for (int i=0;i<6;i++) {
-        ROS_INFO_STREAM(print_matrix(4,4,T[i],"t"+std::to_string(i)+":"));
+      //  ROS_INFO_STREAM(print_matrix(4,4,T[i],"t"+std::to_string(i)+":"));
     }
 
 }
 
-std::string UR5_Control::print_matrix(int m,int n, double* M, std::string prefix) {
-    std::ostringstream dbg_msg;
-    dbg_msg.setf(std::ios_base::fixed);
-    dbg_msg << prefix << std::setprecision(4) << "\n";
-    for(int i=0;i<m;i++){
-        for(int j=0;j<n;j++){
-            dbg_msg <<  M[i*m+j] <<  "\t";
-        }
-        dbg_msg <<  "\n";
-    }
-    dbg_msg <<  "\n";
-    return dbg_msg.str();
-}
+
+
 bool UR5_Control::choose_sol(int nsols,double* sols, double* best,double &max_cost){
     double bcost=999;
     double cost=0;
@@ -223,12 +215,12 @@ void UR5_Control::config_cb(soma_ur5::dyn_ur5_controllerConfig &config, uint32_t
 }
 
 
-void UR5_Control::goal_pose_callback(const geometry_msgs::Pose::ConstPtr &msg){
+void UR5_Control::goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &msg){
 
     double T_pose[16];
-    utils::pose2array(*msg,T_pose);
+    utils::pose2array(msg->pose,T_pose);
 
-    ROS_DEBUG_STREAM(print_matrix(4,4,T_pose,"Goal_el:"));
+    ROS_DEBUG_STREAM(utils::print_matrix(4,4,T_pose,"Goal_el:"));
 
 
     int solver=UR5_Control::JACOBIAN;
@@ -273,6 +265,7 @@ void UR5_Control::calculate_jac(double cur_q[6], Matrix6d &J){
         nc=fwd_kin(next_q);
         J.col(i) = 1/h*(nc-cur_c).col(0);
     }
+    ROS_INFO("Determinant(J): %f",J.determinant());
 }
 
 bool UR5_Control::jac_based(double *goal, double *comm){
@@ -315,7 +308,8 @@ bool UR5_Control::jac_based(double *goal, double *comm){
     for (int i=0;i<6;i++) {
         delta_th_array[i]=delta_th(i);
     }
-    send_speed_command(delta_th_array);
+    //if(Jac.determinant()>0)
+        send_speed_command(delta_th_array);
 }
 
 

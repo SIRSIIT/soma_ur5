@@ -63,11 +63,10 @@ protected:
     bool valid_jconf(double joints[6]);
     void config_cb(soma_ur5::dyn_ur5_controllerConfig &config, uint32_t level);
 	void joint_state_callback(const sensor_msgs::JointState::ConstPtr &msg);
-    void goal_pose_callback(const geometry_msgs::Pose::ConstPtr &msg);
+    void goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &msg);
     bool send_joint_command(double[6]);
     bool send_speed_command(double[6]);
 
-    std::string print_matrix(int m, int n, double* M, std::string prefix);
     bool choose_sol(int nsols, double* sols, double* best, double &max_cost);
 
     bool closed_form(double* goal,double* comm);

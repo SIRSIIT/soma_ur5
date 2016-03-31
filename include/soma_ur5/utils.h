@@ -1,12 +1,18 @@
+#ifndef INCLUDE_SOMA_UR5_UTILS_H_
+#define INCLUDE_SOMA_UR5_UTILS_H_
+
+
 #include <soma_ur5/controller.h>
 typedef Eigen::Matrix< double, 6, 6 > Matrix6d;
 typedef Eigen::Matrix< double, 6, 1 > Vector6d;
+
+#define xyz_eq(a,b) {b.x=a.x;b.y=a.y;b.z=a.z;}
 
 namespace utils{
 void array2pose(double pos[16],geometry_msgs::Pose &pose_out,tf::Transform &tra){
 
     tra.setBasis(tf::Matrix3x3(
-                       pos[0],pos[1],pos[2],
+                     pos[0],pos[1],pos[2],
             pos[4],pos[5],pos[6],
             pos[8],pos[9],pos[10]));
     tra.setOrigin(tf::Vector3(pos[3],pos[7],pos[11]));
@@ -53,7 +59,19 @@ Matrix6d pseudoinv(Matrix6d m){
     return pinv_m;
 }
 
-
+std::string print_matrix(int m,int n, double* M, std::string prefix) {
+    std::ostringstream dbg_msg;
+    dbg_msg.setf(std::ios_base::fixed);
+    dbg_msg << prefix << std::setprecision(4) << "\n";
+    for(int i=0;i<m;i++){
+        for(int j=0;j<n;j++){
+            dbg_msg <<  M[i*m+j] <<  "\t";
+        }
+        dbg_msg <<  "\n";
+    }
+    dbg_msg <<  "\n";
+    return dbg_msg.str();
+}
 
 void pose2array(geometry_msgs::Pose msg,double T_pose[16]){
     tf::Quaternion tf_quat;
@@ -86,4 +104,28 @@ void pose2array(geometry_msgs::Pose msg,double T_pose[16]){
     T_pose[14]=0;
     T_pose[15]=1;
 }
+
+geometry_msgs::Pose Transform2Pose(tf::Transform in){
+    geometry_msgs::Pose out;
+    geometry_msgs::Vector3 v;
+    tf::quaternionTFToMsg(in.getRotation(),out.orientation);
+    tf::vector3TFToMsg(in.getOrigin(),v);
+    xyz_eq(v,out.position);
+    return out;
+
 }
+tf::Transform Pose2Transform(geometry_msgs::Pose in){
+tf::Transform out;
+tf::Quaternion q;
+geometry_msgs::Vector3 v;
+tf::Vector3 vt;
+tf::quaternionMsgToTF(in.orientation,q);
+out.setRotation(q);
+
+xyz_eq(in.position,v);
+tf::vector3MsgToTF(v,vt);
+out.setOrigin(vt);
+return out;
+}
+}
+#endif /* INCLUDE_SOMA_UR5_UTILS_H_ */

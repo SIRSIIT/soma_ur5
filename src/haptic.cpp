@@ -5,11 +5,12 @@ Haptic::Haptic(){
     this->nh=new ros::NodeHandle();
     initialize_haptic();
 
-    pub_hap_pose=nh->advertise<geometry_msgs::Pose>("haptic_pose",5);
-    pub_robot_com=nh->advertise<geometry_msgs::Pose>("/goal_pose",5);
+    pub_hap_pose=nh->advertise<geometry_msgs::PoseStamped>("haptic_pose",5);
+    pub_robot_com=nh->advertise<geometry_msgs::PoseStamped>("/goal_pose",5);
     sub_pose= nh->subscribe("ee_pose", 1000, &Haptic::robot_pose_callback, this);
     nh->getParam("scale_factor", scale_factor);
 
+    pedal_on=false;
     goto_initial();
 
 }
@@ -31,20 +32,23 @@ geometry_msgs::Pose Haptic::scale_pose(geometry_msgs::Pose in,std::string mode){
         out.position.z=in.position.z/scale_factor;
     }
 
-    //out.orientation=in.orientation;//FIXME
-    out.orientation.w=1.0;
+    out.orientation=in.orientation;
+
     return out;
 }
 
 
 bool Haptic::goto_initial(){
-    while(ee_pose.orientation.x==0 && ee_pose.orientation.y==0 && ee_pose.orientation.z==0&& ee_pose.orientation.w==0){
+    while(ee_pose.pose.orientation.x==0 &&
+          ee_pose.pose.orientation.y==0 &&
+          ee_pose.pose.orientation.z==0 &&
+          ee_pose.pose.orientation.w==0){
         ros::spinOnce();
         ros::Duration(0.2).sleep();
         printf("waiting for robot position...\n");
     }
     geometry_msgs::Pose i_p;
-    i_p=scale_pose(ee_pose,"r2h");
+    i_p=scale_pose(ee_pose.pose,"r2h");
     move_haptic(i_p);
     return true;
 }
@@ -60,12 +64,12 @@ bool Haptic::move_haptic(geometry_msgs::Pose in){
     com[2]=in.position.z;
     com[6]=0;
     ROS_INFO("pos: %.2f %.2f %.2f %.2f %.2f %.2f %2f\n",com[0],com[1],com[2],com[3],com[4],com[5],com[6]);
-    drdMoveTo(com,true);
+    //  drdMoveTo(com,true);
 
     return true;
 }
 
-void Haptic::robot_pose_callback(const geometry_msgs::Pose::ConstPtr &msg){
+void Haptic::robot_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &msg){
     ee_pose=*msg;
 }
 
@@ -102,14 +106,14 @@ int Haptic::initialize_haptic(){
         return -1;
     }
 
-  /*  // start robot control loop
+    /*  // start robot control loop
     if (drdStart() < 0) {
         printf ("error: control loop failed to start properly (%s)\n", dhdErrorGetLastStr ());
         dhdSleep (2.0);
         return -1;
     }
     */
-        dhdEnableForce(DHD_ON);
+    // dhdEnableForce(DHD_ON);
 
 
 }
@@ -125,8 +129,20 @@ bool Haptic::GetHapticInfo(geometry_msgs::Pose &h_pose){
             ori[2][0],ori[2][1],ori[2][2]).getRotation(q);
 
     tf::quaternionTFToMsg(q,h_pose.orientation);
-    hap_pose=h_pose;
-    pub_hap_pose.publish(h_pose);
+    hap_pose.pose=h_pose;
+    hap_pose.header.stamp=ros::Time::now();
+    hap_pose.header.frame_id="base_link";
+    pub_hap_pose.publish(hap_pose);
+    if(dhdGetButton(1)==1){
+        if(pedal_on==false){
+            hap_pose_initial=hap_pose;
+            ee_pose_initial=ee_pose;
+        }
+        pedal_on=true;
+    }
+    else{
+        pedal_on=false;
+    }
     return true;
 }
 
@@ -134,26 +150,62 @@ bool Haptic::GetHapticInfo(geometry_msgs::Pose &h_pose){
 bool Haptic::SetHaptic(){
     // double pos[7]={0,0,0,0,0,0,0};
     //    drdMoveTo(pos);
+    geometry_msgs::Pose see_pose=scale_pose(ee_pose.pose,"r2h");
+    // ROS_INFO("%.5f %.5f %.5f",see_pose.position.x-hap_pose.pose.position.x,
+    //          see_pose.position.y-hap_pose.pose.position.y,
+    //          see_pose.position.z-hap_pose.pose.position.z);
     dhdEnableForce(DHD_ON);
-    geometry_msgs::Pose see_pose=scale_pose(ee_pose,"r2h");
-    ROS_INFO("%.5f %.5f %.5f",see_pose.position.x-hap_pose.position.x,
-             see_pose.position.y-hap_pose.position.y,
-             see_pose.position.z-hap_pose.position.z);
-    dhdEnableForce(DHD_ON);
-    dhdSetForceAndTorqueAndGripperForce (-100*(hap_pose.position.x-see_pose.position.x),
-                                         -100*(hap_pose.position.y-see_pose.position.y),
-                                         -100*(hap_pose.position.z-see_pose.position.z)+2,
-                                         0.0, 0.0, 0.0, -0.1);
- //   ROS_INFO("Setting FOrce");
+    dhdSetForceAndTorqueAndGripperForce(0.0,0.0,0.0,0.0,0.0,0.0,0.0);
+
+    // dhdSetGravityCompensation();
+    // dhdSetForceAndTorqueAndGripperForce (-100*(hap_pose.pose.position.x-see_pose.position.x),
+    //                                      -100*(hap_pose.pose.position.y-see_pose.position.y),
+    //                                     -100*(hap_pose.pose.position.z-see_pose.position.z)+1.8,
+    //                                     0.0, 0.0, 0.0, -0.1);
+}
+geometry_msgs::Pose Haptic::diff_pose(geometry_msgs::Pose in){
+    tf::Quaternion q1,q2;
+    geometry_msgs::Pose tmp;
+
+    tf::quaternionMsgToTF(hap_pose_initial.pose.orientation,q1);
+    tf::quaternionMsgToTF(in.orientation,q2);
+
+    tf::quaternionTFToMsg(q2*q1.inverse(),tmp.orientation);
+    tmp.position.x=in.position.x-hap_pose_initial.pose.position.x;
+    tmp.position.y=in.position.y-hap_pose_initial.pose.position.y;
+    tmp.position.z=in.position.z-hap_pose_initial.pose.position.z;
+    return tmp;
 }
 
 bool Haptic::haptic_loop(){
-    geometry_msgs::Pose h_pose,com_pose;
-    GetHapticInfo(h_pose);
+    geometry_msgs::PoseStamped h_pose,com_pose;
+    geometry_msgs::Pose d_pose;
+    GetHapticInfo(h_pose.pose);
     SetHaptic();
-    com_pose=scale_pose(h_pose,"h2r");
-    com_pose.orientation=ee_pose.orientation;
-    pub_robot_com.publish(com_pose);
+    if(pedal_on){
+        ///R1(rot)=R0*(H0'*H1)
+        d_pose=scale_pose(diff_pose(h_pose.pose),"h2r");
+        tf::quaternionTFToMsg(
+                    (utils::Pose2Transform(ee_pose_initial.pose)*utils::Pose2Transform(d_pose)).getRotation(),
+                    com_pose.pose.orientation);
+
+        ///R1(t)=R0+(H0'*H1)
+        com_pose.pose.position.x=ee_pose_initial.pose.position.x+d_pose.position.x;
+        com_pose.pose.position.y=ee_pose_initial.pose.position.y+d_pose.position.y;
+        com_pose.pose.position.z=ee_pose_initial.pose.position.z+d_pose.position.z;
+
+        com_pose.header.stamp=ros::Time::now();
+        com_pose.header.frame_id="base_link";
+        pub_robot_com.publish(com_pose);
+
+
+        //ROS_INFO("d_pose: %.3f %.3f %.3f",d_pose.position.x,d_pose.position.y,d_pose.position.z);
+        double Td[16];
+        utils::pose2array(d_pose,Td);
+        ROS_INFO_STREAM(utils::print_matrix(4,4,Td,"d_pose"));
+
+        ROS_INFO("com_pose: %.3f %.3f %.3f",com_pose.pose.position.x,com_pose.pose.position.y,com_pose.pose.position.z);
+    }
 }
 
 int main(int argc, char **argv){
@@ -162,7 +214,7 @@ int main(int argc, char **argv){
     Haptic *hap=new Haptic();
     ros::Rate rate(100);
 
-//    drdStop();
+    //    drdStop();
     //dhdSetGravityCompensation(DHD_ON);
 
     while(ros::ok()){

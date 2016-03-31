@@ -11,6 +11,6 @@
   
 <node pkg="soma_ur5" type="gazebo_bridge" name="gazebo_bridge"/>
 <node pkg="soma_ur5" type="controller" name="controller"/>
-<node pkg="soma_ur5" type="haptic" name="haptic"/>
+<!--node pkg="soma_ur5" type="haptic" name="haptic"/-->
 
 </launch>
