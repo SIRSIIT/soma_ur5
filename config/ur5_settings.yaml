@@ -5,4 +5,6 @@ limits:
   max_angle: 15.0
 #control_topic: "/vel_based_pos_traj_controller/follow_joint_trajectory"
 control_topic: "/follow_joint_trajectory/"
+solver: "jacobian"  # jacbobian, closed_form
 scale_factor: 0.1
+grip_force_scale: 0.003

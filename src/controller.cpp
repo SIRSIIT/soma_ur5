@@ -11,6 +11,7 @@
 UR5_Control::UR5_Control(){
     this->nh=new ros::NodeHandle();
 
+    tf_list=new tf2_ros::TransformListener(buffer);
     sub_joints = nh->subscribe("joint_states", 1000, &UR5_Control::joint_state_callback, this);
 
     init=false;    using_gazebo=false;
@@ -19,10 +20,11 @@ UR5_Control::UR5_Control(){
 
     pub_ee_pose = nh->advertise<geometry_msgs::PoseStamped>("ee_pose",5);
 
+    dynamic_reconfigure::Server<soma_ur5::dyn_ur5_controllerConfig>::CallbackType f;
+    f=boost::bind(&UR5_Control::config_cb, this, _1, _2);
+    config_server.setCallback(f);
 
-    config_server.setCallback( boost::bind(&UR5_Control::config_cb, this, _1, _2) );
-
-    while(!init){
+     while(!init){
         ros::spinOnce();
         ros::Rate(10).sleep();
     }
@@ -36,6 +38,13 @@ UR5_Control::UR5_Control(){
     nh->getParam("limits/joints", map_j_lim);
     nh->getParam("control_topic", control_topic);
     nh->getParam("limits/max_angle", max_angle);
+
+    std::string solv_str;
+    nh->getParam("solver",solv_str);
+
+    if(boost::iequals(solv_str,"jacobian")) solver=UR5_Control::JACOBIAN;
+    else if(boost::iequals(solv_str,"closed_form")) solver=UR5_Control::CLOSED_FORM;
+
 
     act_client=new actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>(*nh,control_topic);
     //act_client->waitForServer();
@@ -134,12 +143,18 @@ void UR5_Control::joint_state_callback(const sensor_msgs::JointState::ConstPtr &
 
     ur_kinematics::forward(q,pos);
 
-    Tb_ee.setBasis(tf::Matrix3x3(
+    Tb_ee.setBasis(tf2::Matrix3x3(
                        pos[0],pos[1],pos[2],
             pos[4],pos[5],pos[6],
             pos[8],pos[9],pos[10]));
-    Tb_ee.setOrigin(tf::Vector3(pos[3],pos[7],pos[11]));
-    tf_br.sendTransform(tf::StampedTransform(Tb_ee,ros::Time::now(),"base_link","ee_frame"));
+    Tb_ee.setOrigin(tf2::Vector3(pos[3],pos[7],pos[11]));
+
+
+    //tf2::Stamped<tf2::Transform> st(Tb_ee,ros::Time::now(),"base_link","ee_frame");
+
+
+
+      //    tf_br.sendTransform(st);
 
     geometry_msgs::PoseStamped ee_pose;
     geometry_msgs::Quaternion ee_orien;
@@ -148,7 +163,8 @@ void UR5_Control::joint_state_callback(const sensor_msgs::JointState::ConstPtr &
     ee_pose.pose.position.y=pos[7];
     ee_pose.pose.position.z=pos[11];
 
-    tf::quaternionTFToMsg(Tb_ee.getRotation(),ee_orien);
+    //tf::quaternionTFToMsg(Tb_ee.getRotation(),ee_orien);
+    tf2::convert(Tb_ee.getRotation(),ee_orien);
     ee_pose.pose.orientation=ee_orien;
     ee_pose.header.stamp=ros::Time::now();
     ee_pose.header.frame_id="base_link";
@@ -210,8 +226,6 @@ bool UR5_Control::choose_sol(int nsols,double* sols, double* best,double &max_co
 void UR5_Control::config_cb(soma_ur5::dyn_ur5_controllerConfig &config, uint32_t level) {
     ROS_DEBUG("Reconfigure Request.");
         speed_gain=config.speed_gain;
-
-
 }
 
 
@@ -223,7 +237,6 @@ void UR5_Control::goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr 
     ROS_DEBUG_STREAM(utils::print_matrix(4,4,T_pose,"Goal_el:"));
 
 
-    int solver=UR5_Control::JACOBIAN;
     double comm[6];
     switch (solver){
     case(UR5_Control::CLOSED_FORM):
@@ -240,7 +253,7 @@ Vector6d UR5_Control::fwd_kin(double q[6]){
     Vector6d fw;
     double T_j[16];
     ur_kinematics::forward(q,T_j);
-    tf::Matrix3x3(T_j[0],T_j[1],T_j[2],
+    tf2::Matrix3x3(T_j[0],T_j[1],T_j[2],
             T_j[4],T_j[5],T_j[6],
             T_j[8],T_j[9],T_j[10]).getRPY(r,p,y);
     fw << T_j[3], T_j[7], T_j[11], r, p, y;
@@ -271,8 +284,8 @@ void UR5_Control::calculate_jac(double cur_q[6], Matrix6d &J){
 bool UR5_Control::jac_based(double *goal, double *comm){
 
 
-    tf::Transform T_cur=Tb_ee;
-    tf::Transform T_goal;
+    tf2::Transform T_cur=Tb_ee;
+    tf2::Transform T_goal;
     geometry_msgs::Pose p_tmp;
     double cur_q[6];
     double rc,pc,yc,rg,pg,yg;

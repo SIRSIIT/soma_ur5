@@ -3,6 +3,7 @@
 #include <qb_interface/handRef.h>
 #include <qb_interface/handCurrent.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Bool.h>
 
 class Pisa_interface{
 public:
@@ -14,9 +15,10 @@ public:
 
         sub_grip= nh->subscribe("grip_cmd", 1000, &Pisa_interface::haptic_cb, this);
         sub_curr= nh->subscribe("/qb_class/hand_current", 1000, &Pisa_interface::hand_cb, this);
+        sub_pedal= nh->subscribe("hap_pedal", 1000, &Pisa_interface::pedal_cb, this);
 
 
-        scale=0.003;
+        nh->getParam("grip_force_scale", grip_force_scale);
     }
     void run(){
         ros::spin();
@@ -24,23 +26,30 @@ public:
 
 protected:
     ros::NodeHandle *nh;
-    ros::Subscriber sub_grip,sub_curr;
+    ros::Subscriber sub_grip,sub_curr,sub_pedal;
     ros::Publisher pub_grip,pub_ffeed;
-    double scale;
+    double grip_force_scale;
+    bool pedal;
 
+    void pedal_cb(const std_msgs::Bool::ConstPtr &msg){
+        pedal=msg->data;
+    }
 
     void haptic_cb(const std_msgs::Float64::ConstPtr &msg){
 
-        qb_interface::handRef ref;
-        ref.closure.push_back((30-msg->data)/30);
-        pub_grip.publish(ref);
-
+        if(pedal){
+            qb_interface::handRef ref;
+            ref.closure.push_back((30-msg->data)/30);
+            pub_grip.publish(ref);
+        }
     }
 
     void hand_cb(const qb_interface::handCurrent::ConstPtr &msg){
-       std_msgs::Float64 cur;
-       cur.data=((double) msg->current.at(0))*scale;
-       pub_ffeed.publish(cur);
+        if(pedal){
+            std_msgs::Float64 cur;
+            cur.data=((double) msg->current.at(0))*grip_force_scale;
+            pub_ffeed.publish(cur);
+        }
     }
 };
 

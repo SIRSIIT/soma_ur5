@@ -9,13 +9,13 @@ typedef Eigen::Matrix< double, 6, 1 > Vector6d;
 #define xyz_eq(a,b) {b.x=a.x;b.y=a.y;b.z=a.z;}
 
 namespace utils{
-void array2pose(double pos[16],geometry_msgs::Pose &pose_out,tf::Transform &tra){
+void array2pose(double pos[16],geometry_msgs::Pose &pose_out,tf2::Transform &tra){
 
-    tra.setBasis(tf::Matrix3x3(
+    tra.setBasis(tf2::Matrix3x3(
                      pos[0],pos[1],pos[2],
             pos[4],pos[5],pos[6],
             pos[8],pos[9],pos[10]));
-    tra.setOrigin(tf::Vector3(pos[3],pos[7],pos[11]));
+    tra.setOrigin(tf2::Vector3(pos[3],pos[7],pos[11]));
 
     geometry_msgs::Quaternion q_pose;
 
@@ -23,7 +23,8 @@ void array2pose(double pos[16],geometry_msgs::Pose &pose_out,tf::Transform &tra)
     pose_out.position.y=pos[7];
     pose_out.position.z=pos[11];
 
-    tf::quaternionTFToMsg(tra.getRotation(),q_pose);
+ //   tf::quaternionTFToMsg(tra.getRotation(),q_pose);
+  tf2::convert(tra.getRotation(),q_pose);
     pose_out.orientation=q_pose;
 
 
@@ -74,15 +75,16 @@ std::string print_matrix(int m,int n, double* M, std::string prefix) {
 }
 
 void pose2array(geometry_msgs::Pose msg,double T_pose[16]){
-    tf::Quaternion tf_quat;
+    tf2::Quaternion tf_quat;
 
-    tf::quaternionMsgToTF(msg.orientation,tf_quat);
-    tf::Transform Tg;
+   // tf::quaternionMsgToTF(msg.orientation,tf_quat);
+    tf2::convert(msg.orientation,tf_quat);
+    tf2::Transform Tg;
     Tg.setRotation(tf_quat);
-    Tg.setOrigin(tf::Vector3(msg.position.x,msg.position.y,msg.position.z));
+    Tg.setOrigin(tf2::Vector3(msg.position.x,msg.position.y,msg.position.z));
 
     // Tg=Tb_ee; //Try giving the current pose to inverse kinematics
-    tf::Vector3 el,dv;
+    tf2::Vector3 el,dv;
     dv=Tg.getOrigin();
     el=Tg.getBasis().getRow(0);
     T_pose[0]=el.getX();
@@ -105,26 +107,31 @@ void pose2array(geometry_msgs::Pose msg,double T_pose[16]){
     T_pose[15]=1;
 }
 
-geometry_msgs::Pose Transform2Pose(tf::Transform in){
+geometry_msgs::Pose Transform2Pose(tf2::Transform in){
     geometry_msgs::Pose out;
-    geometry_msgs::Vector3 v;
-    tf::quaternionTFToMsg(in.getRotation(),out.orientation);
-    tf::vector3TFToMsg(in.getOrigin(),v);
-    xyz_eq(v,out.position);
+
+    out.orientation.x=in.getRotation().x();
+    out.orientation.y=in.getRotation().y();
+    out.orientation.z=in.getRotation().z();
+    out.orientation.w=in.getRotation().w();
+    out.position.x=in.getOrigin().x();
+    out.position.y=in.getOrigin().y();
+    out.position.z=in.getOrigin().z();
+
     return out;
 
 }
-tf::Transform Pose2Transform(geometry_msgs::Pose in){
-tf::Transform out;
-tf::Quaternion q;
-geometry_msgs::Vector3 v;
-tf::Vector3 vt;
-tf::quaternionMsgToTF(in.orientation,q);
-out.setRotation(q);
+tf2::Transform Pose2Transform(geometry_msgs::Pose in){
+tf2::Transform out;
 
-xyz_eq(in.position,v);
-tf::vector3MsgToTF(v,vt);
-out.setOrigin(vt);
+tf2::Quaternion q;
+q.setX(in.orientation.x);
+q.setY(in.orientation.y);
+q.setZ(in.orientation.z);
+q.setW(in.orientation.w);
+out.setRotation(q);
+out.setOrigin(tf2::Vector3(in.position.x,in.position.y,in.position.z));
+
 return out;
 }
 }

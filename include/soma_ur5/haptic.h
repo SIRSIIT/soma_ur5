@@ -3,13 +3,14 @@
 
 
 #include <ros/ros.h>
-#include <tf/tf.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <geometry_msgs/Pose.h>
 #include <soma_ur5/dhdc.h>
 #include <soma_ur5/drdc.h>
 #include <soma_ur5/utils.h>
 #include <std_msgs/Float64.h>
-
+#include <std_msgs/Bool.h>
+#include <geometry_msgs/WrenchStamped.h>
 class Haptic{
 
 public:
@@ -19,9 +20,10 @@ public:
     bool haptic_loop();
 
 private:
-    ros::Subscriber sub_pose,sub_ft,sub_grip;
-    ros::Publisher pub_hap_pose,pub_robot_com,pub_grip;
+    ros::Subscriber sub_pose,sub_ft,sub_grip,sub_force;
+    ros::Publisher pub_hap_pose,pub_robot_com,pub_grip,pub_pedal;
     geometry_msgs::PoseStamped ee_pose,hap_pose,hap_pose_initial,ee_pose_initial;
+    geometry_msgs::WrenchStamped cur_ee_force;
 
     double scale_factor;
     bool pedal_on;
@@ -32,6 +34,7 @@ private:
     bool SetHaptic();
     void robot_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &msg);
     void grip_callback(const std_msgs::Float64::ConstPtr &msg);
+    void ee_force_callback(const geometry_msgs::WrenchStamped::ConstPtr &msg);
     bool move_haptic(geometry_msgs::Pose);
     bool goto_initial();
     geometry_msgs::Pose diff_pose(geometry_msgs::Pose);

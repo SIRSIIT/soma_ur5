@@ -15,9 +15,14 @@
 #include <sensor_msgs/JointState.h>
 #include <ur_kinematics/ur_kin.h>
 #include <stdlib.h>
-#include <tf/tf.h>
-#include <tf/transform_broadcaster.h>
-#include <tf/transform_listener.h>
+//#include <tf/tf.h>
+//#include <tf/transform_broadcaster.h>
+//#include <tf/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
+
 #include <vector>
 #include <array>
 #include <actionlib/client/action_client.h>
@@ -28,6 +33,7 @@
 #include <Eigen/Dense>
 #include <Eigen/SVD>
 #include <soma_ur5/utils.h>
+#include <boost/algorithm/string.hpp>
 //#define M_PI 3.14159265
 
 typedef Eigen::Matrix< double, 6, 6 > Matrix6d;
@@ -48,17 +54,21 @@ protected:
 	sensor_msgs::JointState cur_joints;
     ros::Subscriber sub_joints,sub_goal_pose;
     ros::Publisher pub_ee_pose,speed_command;
-    tf::TransformBroadcaster tf_br;
-    tf::TransformListener tf_list;
+    tf2_ros::TransformBroadcaster tf_br;
+    tf2_ros::TransformListener *tf_list;
+    tf2_ros::Buffer buffer;
     bool init,using_gazebo;
-    tf::Transform Tb_ee;
+    tf2::Transform Tb_ee;
     double speed_gain;
 
     std::map<std::string,double> map_j_lim,map_ws_lim;
     std::string control_topic;
     double max_angle;
+    int solver;
 
     actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> *act_client;
+
+
 
     bool valid_jconf(double joints[6]);
     void config_cb(soma_ur5::dyn_ur5_controllerConfig &config, uint32_t level);
@@ -66,9 +76,7 @@ protected:
     void goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &msg);
     bool send_joint_command(double[6]);
     bool send_speed_command(double[6]);
-
     bool choose_sol(int nsols, double* sols, double* best, double &max_cost);
-
     bool closed_form(double* goal,double* comm);
     bool jac_based(double* goal,double* comm);
     void calculate_jac(double cur_q[], Matrix6d &J);
