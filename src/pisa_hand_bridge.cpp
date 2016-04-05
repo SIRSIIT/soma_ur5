@@ -9,6 +9,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <soma_ur5/dyn_ur5_handConfig.h>
 
+#define WINDOW_SIZE 5
 class Pisa_interface{
 public:
     dynamic_reconfigure::Server<soma_ur5::dyn_ur5_handConfig> config_server;
@@ -34,8 +35,9 @@ public:
         config_server.setCallback(f);
         i_cu=0;
         i_dp=0;
-        h_dot_hist.resize(20);
-        curr_hist.resize(20);
+        h_dot_hist.resize(WINDOW_SIZE);
+        curr_hist.resize(WINDOW_SIZE);
+        f_filtered.resize(WINDOW_SIZE);
 
 
     }
@@ -63,7 +65,7 @@ protected:
     double ti_lambda,ti_ns,ti_D1,ti_Kte,ti_Ktn;
     double step_time;
     int i_dp,i_cu;
-    std::vector<double> h_dot_hist,curr_hist;
+    std::vector<double> h_dot_hist,curr_hist,f_filtered;
 
     void pedal_cb(const std_msgs::Bool::ConstPtr &msg){
         pedal=msg->data;
@@ -82,7 +84,7 @@ protected:
             hand_pos_prev=hand_pos;
             hand_pos=(double) msg->closure.at(0);
             double hand_pos_dot_tmp=(hand_pos-hand_pos_prev)/step_time;
-            h_dot_hist.at(i_dp%20)=hand_pos_dot_tmp;  i_dp++;
+            h_dot_hist.at(i_dp%WINDOW_SIZE)=hand_pos_dot_tmp;  i_dp++;
             double sum = std::accumulate(h_dot_hist.begin(), h_dot_hist.end(), 0.0);
             hand_pos_dot = sum / h_dot_hist.size();
         }
@@ -117,15 +119,20 @@ protected:
 
     void hand_cb(const qb_interface::handCurrent::ConstPtr &msg){
 
-        curr_hist.at(i_cu%20)=(double) msg->current.at(0);  i_cu++;
+        curr_hist.at(i_cu%WINDOW_SIZE)=(double) msg->current.at(0);
         double sum = std::accumulate(curr_hist.begin(), curr_hist.end(), 0.0);
         double avg_cur= sum / curr_hist.size();
 
+        f_filtered.at(i_cu%WINDOW_SIZE)=teleimpedance(avg_cur);
+        sum = std::accumulate(f_filtered.begin(), f_filtered.end(), 0.0);
+        double avg_for= sum / f_filtered.size();
 
+
+        i_cu++;
         if(pedal){
             std_msgs::Float64 cur;
-            cur.data=teleimpedance( avg_cur)*grip_force_scale;
-            cur.data=avg_cur*grip_force_scale*0.01+ti_lambda;
+            cur.data=avg_for*grip_force_scale;
+            //cur.data=avg_cur*grip_force_scale*0.01+ti_lambda;
             pub_ffeed.publish(cur);
         }
     }

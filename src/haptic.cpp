@@ -22,6 +22,8 @@ Haptic::Haptic(){
     dynamic_reconfigure::Server<soma_ur5::dyn_ur5_hapticConfig>::CallbackType f;
     f=boost::bind(&Haptic::config_cb, this, _1, _2);
     config_server.setCallback(f);
+
+
 }
 Haptic::~Haptic(){
     dhdClose ();
