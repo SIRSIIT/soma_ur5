@@ -15,15 +15,25 @@ Haptic::Haptic(){
     sub_grip= nh->subscribe("grip_feedback", 1000, &Haptic::grip_callback, this);
     sub_force= nh->subscribe("ee_force", 1000, &Haptic::ee_force_callback, this);
 
-    nh->getParam("scale_factor", scale_factor);
+    //nh->getParam("scale_factor", scale_factor);
 
     pedal_on=false;
  //   goto_initial();
+    dynamic_reconfigure::Server<soma_ur5::dyn_ur5_controllerConfig>::CallbackType f;
+    f=boost::bind(&Haptic::config_cb, this, _1, _2);
+    config_server.setCallback(f);
+
 
 }
 Haptic::~Haptic(){
     dhdClose ();
 }
+
+void Haptic::config_cb(soma_ur5::dyn_ur5_controllerConfig &config, uint32_t level) {
+    ROS_DEBUG("Reconfigure Request.");
+        scale_factor=config.scale_factor;
+}
+
 
 geometry_msgs::Pose Haptic::scale_pose(geometry_msgs::Pose in,std::string mode){
     geometry_msgs::Pose out;

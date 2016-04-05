@@ -42,12 +42,12 @@ protected:
             vt=Ree*vt;
 
 
-            Fee.wrench.force.x=vf.x();
+            Fee.wrench.force.x=vf.z();
             Fee.wrench.force.y=vf.y();
-            Fee.wrench.force.z=vf.z();
-            Fee.wrench.torque.x=vt.x();
+            Fee.wrench.force.z=-vf.x();
+            Fee.wrench.torque.x=vt.z();
             Fee.wrench.torque.y=vt.y();
-            Fee.wrench.torque.z=vt.z();
+            Fee.wrench.torque.z=-vt.x();
 
             Fee.header.stamp=ros::Time::now();
             Fee.header.frame_id="base_link";

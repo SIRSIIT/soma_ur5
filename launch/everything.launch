@@ -24,7 +24,7 @@
 
   <node pkg="soma_ur5" type="pisa_hand_bridge" name="pisa_hand_bridge"/>
   <node unless="$(arg simulated)" pkg="soma_ur5" type="controller" name="controller"/>
-  <node pkg="soma_ur5" type="haptic" name="haptic" />
+  <!--node pkg="soma_ur5" type="haptic" name="haptic" /-->
 
 
  <node unless="$(arg simulated)" pkg="netft_rdt_driver" type="netft_node" name="netft_node" args="--address 192.168.1.1" />
