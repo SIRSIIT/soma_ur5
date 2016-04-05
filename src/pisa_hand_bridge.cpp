@@ -7,11 +7,11 @@
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/Bool.h>
 #include <dynamic_reconfigure/server.h>
-#include <soma_ur5/dyn_ur5_controllerConfig.h>
+#include <soma_ur5/dyn_ur5_handConfig.h>
 
 class Pisa_interface{
 public:
-    dynamic_reconfigure::Server<soma_ur5::dyn_ur5_controllerConfig> config_server;
+    dynamic_reconfigure::Server<soma_ur5::dyn_ur5_handConfig> config_server;
 
     Pisa_interface(){
         nh=new ros::NodeHandle();
@@ -29,7 +29,7 @@ public:
 
         //        nh->getParam("hand/grip_force_scale", grip_force_scale);
         nh->getParam("step_time", step_time);
-        dynamic_reconfigure::Server<soma_ur5::dyn_ur5_controllerConfig>::CallbackType f;
+        dynamic_reconfigure::Server<soma_ur5::dyn_ur5_handConfig>::CallbackType f;
         f=boost::bind(&Pisa_interface::config_cb, this, _1, _2);
         config_server.setCallback(f);
         i_cu=0;
@@ -43,7 +43,7 @@ public:
         ros::spin();
     }
 
-    void config_cb(soma_ur5::dyn_ur5_controllerConfig &config, uint32_t level) {
+    void config_cb(soma_ur5::dyn_ur5_handConfig &config, uint32_t level) {
         ROS_DEBUG("Reconfigure Request.");
         grip_force_scale=config.grip_force_scale;
         ti_lambda=config.teleimp_lambda;
@@ -78,13 +78,14 @@ protected:
         }
     }
     void hand_meas_cb(const qb_interface::handPos::ConstPtr &msg){
-        double hand_pos_dot_tmp=(hand_pos-hand_pos_prev)/step_time;
-
-        h_dot_hist.at(i_dp%20)=hand_pos_dot_tmp;  i_dp++;
-        double sum = std::accumulate(h_dot_hist.begin(), h_dot_hist.end(), 0.0);
-        hand_pos_dot = sum / h_dot_hist.size();
-        hand_pos_prev=hand_pos;
-        hand_pos=(double) msg->closure.at(0);
+        if(!isnan(msg->closure.at(0))){
+            hand_pos_prev=hand_pos;
+            hand_pos=(double) msg->closure.at(0);
+            double hand_pos_dot_tmp=(hand_pos-hand_pos_prev)/step_time;
+            h_dot_hist.at(i_dp%20)=hand_pos_dot_tmp;  i_dp++;
+            double sum = std::accumulate(h_dot_hist.begin(), h_dot_hist.end(), 0.0);
+            hand_pos_dot = sum / h_dot_hist.size();
+        }
     }
 
     double signnum_c(double x) {
@@ -104,13 +105,14 @@ protected:
 
         std_msgs::Float64MultiArray a;
         double t_model=(1+(this->signnum_c(hand_pos_dot)*ti_ns))*ti_Kte*(hand_pos)+ti_D1*hand_pos_dot;
+        double t_int=ti_Ktn*current-t_model;
+
         a.data.push_back(current);
         a.data.push_back(hand_pos_dot);
         a.data.push_back(t_model);
-        double t_int=ti_Ktn*current-t_model;
         a.data.push_back(t_int);
         pub_debug.publish(a);
-        return current;
+        return t_int;
     }
 
     void hand_cb(const qb_interface::handCurrent::ConstPtr &msg){
@@ -123,6 +125,7 @@ protected:
         if(pedal){
             std_msgs::Float64 cur;
             cur.data=teleimpedance( avg_cur)*grip_force_scale;
+            cur.data=avg_cur*grip_force_scale*0.01+ti_lambda;
             pub_ffeed.publish(cur);
         }
     }

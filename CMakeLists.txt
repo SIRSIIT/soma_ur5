@@ -92,6 +92,8 @@ find_package(Eigen REQUIRED)
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
  generate_dynamic_reconfigure_options(
    cfg/dyn_ur5_controller.cfg
+   cfg/dyn_ur5_haptic.cfg
+   cfg/dyn_ur5_hand.cfg
 #   cfg/DynReconf2.cfg
  )
 

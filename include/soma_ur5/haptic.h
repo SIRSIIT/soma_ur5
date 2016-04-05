@@ -12,7 +12,7 @@
 #include <std_msgs/Bool.h>
 #include <geometry_msgs/WrenchStamped.h>
 #include <dynamic_reconfigure/server.h>
-#include <soma_ur5/dyn_ur5_controllerConfig.h>
+#include <soma_ur5/dyn_ur5_hapticConfig.h>
 
 
 class Haptic{
@@ -22,7 +22,7 @@ public:
     ~Haptic();
     ros::NodeHandle *nh;
     bool haptic_loop();
-    dynamic_reconfigure::Server<soma_ur5::dyn_ur5_controllerConfig> config_server;
+    dynamic_reconfigure::Server<soma_ur5::dyn_ur5_hapticConfig> config_server;
 
 private:
     ros::Subscriber sub_pose,sub_ft,sub_grip,sub_force;
@@ -44,7 +44,7 @@ private:
     bool goto_initial();
     geometry_msgs::Pose diff_pose(geometry_msgs::Pose);
     geometry_msgs::Pose scale_pose(geometry_msgs::Pose in, std::string mode);
-    void config_cb(soma_ur5::dyn_ur5_controllerConfig &config, uint32_t level);
+    void config_cb(soma_ur5::dyn_ur5_hapticConfig &config, uint32_t level);
 };
 
 #endif /* INCLUDE_SOMA_UR5_HAPTIC_H_ */

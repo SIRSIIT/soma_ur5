@@ -19,17 +19,15 @@ Haptic::Haptic(){
 
     pedal_on=false;
  //   goto_initial();
-    dynamic_reconfigure::Server<soma_ur5::dyn_ur5_controllerConfig>::CallbackType f;
+    dynamic_reconfigure::Server<soma_ur5::dyn_ur5_hapticConfig>::CallbackType f;
     f=boost::bind(&Haptic::config_cb, this, _1, _2);
     config_server.setCallback(f);
-
-
 }
 Haptic::~Haptic(){
     dhdClose ();
 }
 
-void Haptic::config_cb(soma_ur5::dyn_ur5_controllerConfig &config, uint32_t level) {
+void Haptic::config_cb(soma_ur5::dyn_ur5_hapticConfig &config, uint32_t level) {
     ROS_DEBUG("Reconfigure Request.");
         scale_factor=config.scale_factor;
 }
