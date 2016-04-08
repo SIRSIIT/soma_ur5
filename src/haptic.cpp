@@ -203,6 +203,8 @@ bool Haptic::SetHaptic(){
                                         cur_ee_force.wrench.torque.y,
                                         cur_ee_force.wrench.torque.z,
                                         grip_val);
+    cur_ee_force=geometry_msgs::WrenchStamped();
+    grip_val=0;
     }
     else{
         dhdSetForceAndTorqueAndGripperForce(0.0,0.0,0.0,0.0,0.0,0.0,0.0);
