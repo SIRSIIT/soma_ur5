@@ -141,7 +141,9 @@ int Haptic::initialize_haptic(){
         return -1;
     }
     */
-    // dhdEnableForce(DHD_ON);
+    dhdEnableForce(DHD_ON);
+    dhdSetForceAndTorqueAndGripperForce(0.0,0.0,0.0,0.0,0.0,0.0,0.0);
+
 
     ROS_INFO("Haptic device initialized");
     return 0;
@@ -204,7 +206,7 @@ bool Haptic::SetHaptic(){
                                         cur_ee_force.wrench.torque.z,
                                         grip_val);
     cur_ee_force=geometry_msgs::WrenchStamped();
-    grip_val=0;
+  //  grip_val=0;
     }
     else{
         dhdSetForceAndTorqueAndGripperForce(0.0,0.0,0.0,0.0,0.0,0.0,0.0);

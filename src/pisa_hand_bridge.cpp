@@ -8,8 +8,9 @@
 #include <std_msgs/Bool.h>
 #include <dynamic_reconfigure/server.h>
 #include <soma_ur5/dyn_ur5_handConfig.h>
+#include <soma_ur5/teleimpedance.h>
 
-#define WINDOW_SIZE 50
+#define WINDOW_SIZE 20
 class Pisa_interface{
 public:
     dynamic_reconfigure::Server<soma_ur5::dyn_ur5_handConfig> config_server;
@@ -49,14 +50,16 @@ public:
     void config_cb(soma_ur5::dyn_ur5_handConfig &config, uint32_t level) {
         ROS_DEBUG("Reconfigure Request.");
         grip_force_scale=config.grip_force_scale;
-        ti_lambda=config.teleimp_lambda;
-        ti_Kte=config.teleimp_K_te;
-        ti_Ktn=config.teleimp_K_tn;
-        ti_D1=config.teleimp_D1;
-        ti_D2=config.teleimp_D2;
-        ti_ns1=config.teleimp_ns1;
-        ti_ns2=config.teleimp_ns2;
-        ti_bias=config.teleimp_bias;
+        ti_options.lambda=config.teleimp_lambda;
+        ti_options.Kte=config.teleimp_K_te;
+        ti_options.Ktn=config.teleimp_K_tn;
+        ti_options.D1=config.teleimp_D1;
+        ti_options.D2=config.teleimp_D2;
+        ti_options.ns1=config.teleimp_ns1;
+        ti_options.ns2=config.teleimp_ns2;
+        ti_options.bias=config.teleimp_bias;
+        ti.update_opts();
+
     }
 
 protected:
@@ -64,6 +67,9 @@ protected:
     ros::Subscriber sub_grip,sub_curr,sub_pedal,sub_h_clos;
     ros::Publisher pub_grip,pub_ffeed,pub_debug;
     double grip_force_scale;
+    teleimp_options ti_options;
+    Teleimpedance ti;
+
     bool pedal;
     double hand_pos_prev,hand_pos,hand_pos_dot,hand_acc,closure_ref;
     double ti_lambda,ti_ns1,ti_ns2,ti_bias,ti_D1,ti_D2,ti_Kte,ti_Ktn;
@@ -77,7 +83,7 @@ protected:
     }
 
     void haptic_cb(const std_msgs::Float64::ConstPtr &msg){
-        closure_ref=(30-msg->data)/30;
+        closure_ref=(30-msg->data)*0.03; // 29->0 & 0->0.9
         if(pedal){
             qb_interface::handRef ref;
             ref.closure.push_back(closure_ref);
@@ -122,7 +128,7 @@ protected:
         double t_model=torque_model(hand_pos,hand_pos_dot)+ti_bias;
         double t_int=ti_Ktn*current-t_model;
 
-        a.data.push_back(current);        
+        a.data.push_back(current);
         a.data.push_back(hand_pos_dot);
         a.data.push_back(t_model);
         a.data.push_back(ti_Ktn*current);
@@ -164,10 +170,14 @@ protected:
         curr_hist.at(i_cu%WINDOW_SIZE)=(double) msg->current.at(0);
         double avg_cur=average(curr_hist);
        // f_filtered.at(i_cu%WINDOW_SIZE)=teleimpedance(avg_cur);
-      //  f_filtered.at(i_cu%WINDOW_SIZE)=fuzzy(avg_cur);        
-        f_filtered.at(i_cu%WINDOW_SIZE)=spring(avg_cur);
-        double avg_for=average(f_filtered);
+        //  f_filtered.at(i_cu%WINDOW_SIZE)=fuzzy(avg_cur);
+        //  f_filtered.at(i_cu%WINDOW_SIZE)=spring(avg_cur);
+         f_filtered.at(i_cu%WINDOW_SIZE)=msg->current.at(0)/1000;
 
+
+        //double avg_for=average(f_filtered);
+        //double avg_for=teleimpedance(avg_cur);
+        double avg_for=avg_cur/1000;
         i_cu++;
         if(pedal){
             std_msgs::Float64 cur;
