@@ -24,7 +24,7 @@ UR5_Control::UR5_Control(){
     f=boost::bind(&UR5_Control::config_cb, this, _1, _2);
     config_server.setCallback(f);
 
-     while(!init){
+    while(!init){
         ros::spinOnce();
         ros::Rate(10).sleep();
     }
@@ -154,7 +154,7 @@ void UR5_Control::joint_state_callback(const sensor_msgs::JointState::ConstPtr &
 
 
 
-      //    tf_br.sendTransform(st);
+    //    tf_br.sendTransform(st);
 
     geometry_msgs::PoseStamped ee_pose;
     geometry_msgs::Quaternion ee_orien;
@@ -177,7 +177,7 @@ void UR5_Control::joint_state_callback(const sensor_msgs::JointState::ConstPtr &
     double T[6][16];
     ur_kinematics::forward_all(q,T[0],T[1],T[2],T[3],T[4],T[5]);
     for (int i=0;i<6;i++) {
-      //  ROS_INFO_STREAM(print_matrix(4,4,T[i],"t"+std::to_string(i)+":"));
+        //  ROS_INFO_STREAM(print_matrix(4,4,T[i],"t"+std::to_string(i)+":"));
     }
 
 }
@@ -225,7 +225,7 @@ bool UR5_Control::choose_sol(int nsols,double* sols, double* best,double &max_co
 
 void UR5_Control::config_cb(soma_ur5::dyn_ur5_controllerConfig &config, uint32_t level) {
     ROS_DEBUG("Reconfigure Request.");
-        speed_gain=config.speed_gain;
+    speed_gain=config.speed_gain;
 }
 
 
@@ -295,14 +295,14 @@ bool UR5_Control::jac_based(double *goal, double *comm){
     for(int i=0;i<6;i++) {
         cur_q[i]=cur_joints.position.at(i);
     }
-   // ROS_INFO("cur q: %.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f",
-   //          cur_q[0],cur_q[1],cur_q[2],cur_q[3],cur_q[4],cur_q[5]);
+    // ROS_INFO("cur q: %.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f",
+    //          cur_q[0],cur_q[1],cur_q[2],cur_q[3],cur_q[4],cur_q[5]);
 
     T_cur.getBasis().getRPY(rc,pc,yc);
 
     Matrix6d Jac;
     calculate_jac(cur_q,Jac);
- //   ROS_INFO_STREAM("J:" << std::endl << Jac);
+    //   ROS_INFO_STREAM("J:" << std::endl << Jac);
 
     utils::array2pose(goal,p_tmp,T_goal);
     T_goal.getBasis().getRPY(rg,pg,yg);
@@ -312,17 +312,17 @@ bool UR5_Control::jac_based(double *goal, double *comm){
             T_goal.getOrigin().getZ()-T_cur.getOrigin().getZ(),
             rg-rc,pg-pc,yg-yc;
 
- //   ROS_INFO_STREAM("delta_x:" << delta_x);
+    //   ROS_INFO_STREAM("delta_x:" << delta_x);
 
     delta_th=utils::pseudoinv(Jac)*delta_x;
     //delta_th=Jac.transpose()*delta_x;
-//    ROS_INFO_STREAM("delta_th:" << delta_th);
+    //    ROS_INFO_STREAM("delta_th:" << delta_th);
 
     for (int i=0;i<6;i++) {
         delta_th_array[i]=delta_th(i);
     }
     //if(Jac.determinant()>0)
-        send_speed_command(delta_th_array);
+    send_speed_command(delta_th_array);
 }
 
 

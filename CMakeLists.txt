@@ -144,6 +144,7 @@ lib)
  add_executable(gazebo_bridge src/gazebo_bridge.cpp)
  add_executable(pisa_hand_bridge src/pisa_hand_bridge.cpp)
  add_executable(ati_bridge src/ati_bridge.cpp)
+ add_executable(ur5_model src/ur5_model.cpp)
 
 
 
@@ -155,9 +156,15 @@ lib)
  add_dependencies(gazebo_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(pisa_hand_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(ati_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+ add_dependencies(ur5_model ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
  target_link_libraries(controller
+   ${catkin_LIBRARIES}
+   ur5_kin
+ )
+
+ target_link_libraries(ur5_model
    ${catkin_LIBRARIES}
    ur5_kin
  )
