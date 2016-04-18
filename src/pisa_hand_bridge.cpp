@@ -105,8 +105,8 @@ protected:
             std_msgs::Float64 cur;
             cur.data=ti->getFeedback()*grip_force_scale;
             pub_ffeed.publish(cur);
-            debug_feedback();
         }
+        debug_feedback();
     }
 };
 
