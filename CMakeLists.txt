@@ -142,9 +142,7 @@ link_directories( ../../devel/lib lib)
  add_executable(ati_bridge src/ati_bridge.cpp)
  add_executable(ur5_model src/ur5_model.cpp)
  add_executable(leap_commander src/leap_commander.cpp)
-
-
-
+ add_executable(haptic_band src/haptic_band.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -155,6 +153,7 @@ link_directories( ../../devel/lib lib)
  add_dependencies(ati_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(ur5_model ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(leap_commander ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+ add_dependencies(haptic_band ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
  target_link_libraries(controller    ${catkin_LIBRARIES}   ur5_kin )
@@ -164,6 +163,7 @@ link_directories( ../../devel/lib lib)
  target_link_libraries(pisa_hand_bridge   ${catkin_LIBRARIES} )
  target_link_libraries(ati_bridge   ${catkin_LIBRARIES} )
  target_link_libraries(leap_commander   ${catkin_LIBRARIES} )
+ target_link_libraries(haptic_band ${catkin_LIBRARIES} )
 
 
 #############
