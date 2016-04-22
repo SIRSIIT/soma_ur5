@@ -1,7 +1,8 @@
 #include <ros/ros.h>
 #include <geometry_msgs/WrenchStamped.h>
+#include <std_msgs/Float64.h>
 #include <soma_ur5/chb.h>
-
+#include <qb_interface/handCurrent.h>
 
 class Hap_Band{
 public:
@@ -9,10 +10,12 @@ public:
         const char * device = "/dev/ttyACM0";  // Linux
         nh=new ros::NodeHandle();
         force_sub=nh->subscribe("/netft_data",100,&Hap_Band::force_callback,this);
+        grip_sub=nh->subscribe("/qb_class/hand_current",100,&Hap_Band::grip_callback,this);
         fd=band.chbInit(device);
         rate= new ros::Rate(50);
         Kf=200;
         Kt=1000;
+        Kg=1;
         start_pos=6500;
 
     }
@@ -28,9 +31,7 @@ public:
         mot[1]=(unsigned short) -fx + tz + start_pos;
         mot[2]=(unsigned short) fy + tz + start_pos;
         mot[3]=(unsigned short) fx + tz + start_pos;
-
-
-        mot[4]=0;
+        mot[4]=(unsigned short) grip_feedback*Kg;
     }
 
     void run(){
@@ -39,11 +40,11 @@ public:
         unsigned short r[5];
         force_to_motors(force_cur.wrench,r);
 
-        int ret=band.chbSetPos(fd,3,r[0]);
-        ret=band.chbSetPos(fd,2,r[1]);
-        ret=band.chbSetPos(fd,1,r[2]);
-        ret=band.chbSetPos(fd,5,r[3]);
-        ret=band.chbSetPos(fd,0,r[4]);
+        band.chbSetPos(fd,3,r[0]);
+        band.chbSetPos(fd,2,r[1]);
+        band.chbSetPos(fd,1,r[2]);
+        band.chbSetPos(fd,5,r[3]);
+        band.chbSetPos(fd,0,r[4]);
 
 
 
@@ -55,14 +56,18 @@ public:
 protected:
     ChbDev band;
     ros::NodeHandle *nh;
-    ros::Subscriber force_sub;
+    ros::Subscriber force_sub,grip_sub;
     ros::Rate *rate;
     int fd;
     geometry_msgs::WrenchStamped force_cur;
     void force_callback(const geometry_msgs::WrenchStamped::ConstPtr &msg){
         force_cur=*msg;
     }
-    double Kf,Kt,start_pos;
+    void grip_callback(const qb_interface::handCurrent::ConstPtr &msg){
+        grip_feedback=(double) msg->current[0];
+    }
+
+    double Kf,Kt,Kg,start_pos,grip_feedback;
 
 };
 
