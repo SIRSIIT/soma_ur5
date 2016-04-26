@@ -35,6 +35,8 @@
 #include <soma_ur5/utils.h>
 #include <boost/algorithm/string.hpp>
 //#define M_PI 3.14159265
+#define MAX_SPEED 0.3
+
 
 typedef Eigen::Matrix< double, 6, 6 > Matrix6d;
 typedef Eigen::Matrix< double, 6, 1 > Vector6d;

@@ -22,7 +22,7 @@
 
 <!-- Leap motion -->
   <node pkg="leap_motion" type="sender.py" name="sender"/>
-  <!--node pkg="tf" type="static_transform_publisher" name="tf_w2l" args="0 0 0.0 1.57 0 0 base_leap leap_frame 100" /-->
+  <node pkg="tf" type="static_transform_publisher" name="tf_w2l" args="0.42 0 0 1.57 0 0 /world /leap_base 100" />
   <node pkg="soma_ur5" type="leap_commander" name="leap_commander"/>
   
 <!-- Haptic band -->
@@ -30,11 +30,11 @@
 
 <!-- ATI sensor -->
  <node unless="$(arg simulated)" pkg="netft_rdt_driver" type="netft_node" name="netft_node" args="--address 192.168.1.1" />
- <node unless="$(arg simulated)" pkg="soma_ur5" type="ati_bridge" name="ati_bridge" />
+ <!--node unless="$(arg simulated)" pkg="soma_ur5" type="ati_bridge" name="ati_bridge" /-->
 
   
 <!--Keyboard-->
   <node pkg="keyboard" type="keyboard" name="keyboard"/>  
-  <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure"/>  
+  <!--node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure"/-->  
 
 </launch>

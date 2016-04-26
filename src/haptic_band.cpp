@@ -17,7 +17,8 @@ public:
         Kt=1000;
         Kg=1;
         start_pos=6500;
-
+        i=0;
+        alpha=0.1;
     }
 
     void force_to_motors(geometry_msgs::Wrench in, unsigned short mot[5]){
@@ -34,11 +35,27 @@ public:
         mot[4]=(unsigned short) grip_feedback*Kg;
     }
 
+    geometry_msgs::Wrench filter(geometry_msgs::Wrench in){
+        geometry_msgs::Wrench out=in;
+        if (i > 0){
+            out.force.x=alpha*out.force.x + (1-alpha)*f_old.force.x;
+            out.force.y=alpha*out.force.y + (1-alpha)*f_old.force.y;
+            out.force.z=alpha*out.force.z + (1-alpha)*f_old.force.z;
+
+            out.torque.x=alpha*out.torque.x + (1-alpha)*f_old.torque.x;
+            out.torque.y=alpha*out.torque.y + (1-alpha)*f_old.torque.y;
+            out.torque.z=alpha*out.torque.z + (1-alpha)*f_old.torque.z;
+        }
+        f_old=out;
+        i++;
+        return out;
+    }
+
     void run(){
         ros::spinOnce();
 
         unsigned short r[5];
-        force_to_motors(force_cur.wrench,r);
+        force_to_motors(filter(force_cur.wrench),r);
 
         band.chbSetPos(fd,3,r[0]);
         band.chbSetPos(fd,2,r[1]);
@@ -58,16 +75,19 @@ protected:
     ros::NodeHandle *nh;
     ros::Subscriber force_sub,grip_sub;
     ros::Rate *rate;
-    int fd;
+    int fd,i;
     geometry_msgs::WrenchStamped force_cur;
     void force_callback(const geometry_msgs::WrenchStamped::ConstPtr &msg){
+
         force_cur=*msg;
+        i++;
     }
     void grip_callback(const qb_interface::handCurrent::ConstPtr &msg){
         grip_feedback=(double) msg->current[0];
     }
 
-    double Kf,Kt,Kg,start_pos,grip_feedback;
+    double Kf,Kt,Kg,start_pos,grip_feedback,alpha;
+    geometry_msgs::Wrench f_old;
 
 };
 
@@ -75,13 +95,13 @@ protected:
 
 int main(int argc, char **argv){
     ros::init(argc, argv, "haptic_band");
-Hap_Band chb;
-while (ros::ok()) {
+    Hap_Band chb;
+    while (ros::ok()) {
 
-    chb.run();
-}
+        chb.run();
+    }
 
-            return 0;
+    return 0;
 
 }
 

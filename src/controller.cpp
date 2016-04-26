@@ -59,7 +59,9 @@ bool UR5_Control::send_speed_command(double j_com[6]){
     traj.header.stamp=ros::Time::now();
     if(speed_gain==0) ROS_WARN_THROTTLE(1.0,"speed_gain is set to zero. Fix: rosrun dynamic_reconfigure dynparam set %s speed_gain 0.01",ros::this_node::getName().c_str());
 
-    for(int i=0;i<6;i++) traj.points.at(0).velocities.push_back(j_com[i]*speed_gain);
+    for(int i=0;i<6;i++) traj.points.at(0).velocities.push_back(
+                std::max(std::min(MAX_SPEED,j_com[i]*speed_gain),-MAX_SPEED)
+                );
     speed_command.publish(traj);
 }
 

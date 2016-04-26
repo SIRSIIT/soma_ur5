@@ -39,11 +39,11 @@ public:
                 com_pose.pose.position.x=ee_pose_initial.pose.position.x+d_pose.position.x;
                 com_pose.pose.position.y=ee_pose_initial.pose.position.y+d_pose.position.y;
                 com_pose.pose.position.z=ee_pose_initial.pose.position.z+d_pose.position.z;
+
             }
             else{
                 h_pose=leap_pose;
                 d_pose=scale_pose(diff_pose(h_pose.pose),"h2r");
-
                 com_pose.pose=utils::Transform2Pose(utils::Pose2Transform(ee_pose_initial.pose)*utils::Pose2Transform(d_pose));
             }
 
@@ -76,7 +76,7 @@ protected:
         //q.setRPY(msg->ypr.x*M_PI/180,0,0);
         //q.setRPY(0,-atan2(msg->normal.x,-msg->normal.y),0);
 
-        tf2::Vector3 c(msg->normal.x,msg->normal.y,msg->normal.z);
+        tf2::Vector3 c(-msg->normal.x,-msg->normal.y,-msg->normal.z);
         tf2::Vector3 a(msg->direction.x,msg->direction.y,msg->direction.z);
         tf2::Vector3 b(c.cross(a));
         tf2::Matrix3x3 M(a.x(),b.x(),c.x(),
@@ -137,7 +137,8 @@ protected:
         hand_in_leapbase.header.stamp=trans.header.stamp;
         //tf_br.sendTransform(hand_in_leapbase);
 
-        leap_pose=transf2pose(hand_in_leapbase);
+       leap_pose=transf2pose(hand_in_leapbase); //WORKING before
+     //   leap_pose=transf2pose(trans);  //Trial
         hand_state=*msg;
         opening=get_hand_opening(msg);
         //     pub_robot_com.publish(leap_pose);
@@ -148,38 +149,39 @@ protected:
     }
 
     void keydown_callback(const keyboard::Key::ConstPtr &msg){
-           if(msg->code==msg->KEY_KP0){
-               key_space_on=false;
-               key_zero_on=true;
-               BASE_FRAME=true;
-               leap_pose_initial=leap_pose;
-               ee_pose_initial=ee_pose;
-               ROS_WARN("Working on Base frame now");
+        if(msg->code==msg->KEY_KP0){
+            key_space_on=false;
+            key_zero_on=true;
+            BASE_FRAME=true;
+            leap_pose_initial=leap_pose;
+            ee_pose_initial=ee_pose;
+            ROS_WARN("Working on Base frame now");
 
-           }
-           else if(msg->code==msg->KEY_SPACE)    {
-               key_space_on=true;
-               leap_pose_initial=leap_pose;
-               ee_pose_initial=ee_pose;
-               ROS_INFO("ON");
-           }
-       }
-       void keyup_callback(const keyboard::Key::ConstPtr &msg){
-           if(msg->code==msg->KEY_KP0){
-               key_zero_on=false;
-               BASE_FRAME=false;
-           }
-           if(msg->code==msg->KEY_SPACE)     {
-               key_space_on=false;
-               ROS_INFO("OFF");
-           }
-       }
+        }
+        else if(msg->code==msg->KEY_SPACE)    {
+            key_space_on=true;
+            BASE_FRAME=false;
+            leap_pose_initial=leap_pose;
+            ee_pose_initial=ee_pose;
+            ROS_INFO("ON");
+        }
+    }
+    void keyup_callback(const keyboard::Key::ConstPtr &msg){
+        if(msg->code==msg->KEY_KP0){
+            key_zero_on=false;
+            BASE_FRAME=false;
+        }
+        if(msg->code==msg->KEY_SPACE)     {
+            key_space_on=false;
+            ROS_INFO("OFF");
+        }
+    }
 
 
     geometry_msgs::Pose diff_pose(geometry_msgs::Pose in){
-        tf2::Quaternion q1,q2;
         geometry_msgs::Pose tmp;
-
+        /*
+        tf2::Quaternion q1,q2;
         tf2::convert(leap_pose_initial.pose.orientation,q1);
         tf2::convert(in.orientation,q2);
         tf2::convert(q2*q1.inverse(),tmp.orientation);
@@ -187,6 +189,12 @@ protected:
         tmp.position.x=in.position.x-leap_pose_initial.pose.position.x;
         tmp.position.y=in.position.y-leap_pose_initial.pose.position.y;
         tmp.position.z=in.position.z-leap_pose_initial.pose.position.z;
+  */
+
+        tf2::Transform li,lc;
+        li=utils::Pose2Transform(leap_pose_initial.pose);
+        lc=utils::Pose2Transform(in);
+        tmp=utils::Transform2Pose(li.inverse()*lc);
         return tmp;
     }
     geometry_msgs::Pose scale_pose(geometry_msgs::Pose in,std::string mode){
