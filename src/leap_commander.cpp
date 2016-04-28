@@ -140,7 +140,7 @@ protected:
        leap_pose=transf2pose(hand_in_leapbase); //WORKING before
      //   leap_pose=transf2pose(trans);  //Trial
         hand_state=*msg;
-        opening=get_hand_opening(msg);
+        opening=get_hand_opening(msg)*1.0;
         //     pub_robot_com.publish(leap_pose);
 
     }
