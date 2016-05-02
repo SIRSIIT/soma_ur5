@@ -314,7 +314,7 @@ bool UR5_Control::jac_based(double *goal, double *comm){
             T_goal.getOrigin().getZ()-T_cur.getOrigin().getZ(),
             rg-rc,pg-pc,yg-yc;
 
-    //   ROS_INFO_STREAM("delta_x:" << delta_x);
+       ROS_INFO_STREAM("delta_x:" << delta_x);
 
     delta_th=utils::pseudoinv(Jac)*delta_x;
     //delta_th=Jac.transpose()*delta_x;

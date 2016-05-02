@@ -23,9 +23,12 @@ public:
 
 protected:
     void vel_callback(const trajectory_msgs::JointTrajectory::ConstPtr &msg);
-    ros::Subscriber sub_comm;
+    void pos_callback(const trajectory_msgs::JointTrajectory::ConstPtr &msg);
+    void joint_callback(const sensor_msgs::JointState::ConstPtr &msg);
+    ros::Subscriber sub_comm,sub_joints,sub_traj;
     std::vector<ros::Publisher> pub_vels;
     ros::Time last;
+    sensor_msgs::JointState cur_joints;
 
 
 
