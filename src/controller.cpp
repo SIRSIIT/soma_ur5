@@ -174,7 +174,7 @@ void UR5_Control::joint_state_callback(const sensor_msgs::JointState::ConstPtr &
 
     pub_ee_pose.publish(ee_pose);
 
-    ROS_INFO_STREAM_THROTTLE(1,utils::print_matrix(4,4,pos,"EE_pose"));
+    //ROS_INFO_STREAM_THROTTLE(1,utils::print_matrix(4,4,pos,"EE_pose"));
 
     double T[6][16];
     ur_kinematics::forward_all(q,T[0],T[1],T[2],T[3],T[4],T[5]);
@@ -265,7 +265,7 @@ Vector6d UR5_Control::fwd_kin(double q[6]){
 
 void UR5_Control::calculate_jac(double cur_q[6], Matrix6d &J){
 
-    double h=0.01;
+    double h=0.001;
     double next_q[6];
 
     Vector6d cur_c,nc;
@@ -283,6 +283,8 @@ void UR5_Control::calculate_jac(double cur_q[6], Matrix6d &J){
     ROS_INFO("Determinant(J): %f",J.determinant());
 }
 
+
+
 bool UR5_Control::jac_based(double *goal, double *comm){
 
 
@@ -297,28 +299,36 @@ bool UR5_Control::jac_based(double *goal, double *comm){
     for(int i=0;i<6;i++) {
         cur_q[i]=cur_joints.position.at(i);
     }
-    // ROS_INFO("cur q: %.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f",
-    //          cur_q[0],cur_q[1],cur_q[2],cur_q[3],cur_q[4],cur_q[5]);
+     ROS_INFO("cur q: %.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f",
+              cur_q[0],cur_q[1],cur_q[2],cur_q[3],cur_q[4],cur_q[5]);
 
     T_cur.getBasis().getRPY(rc,pc,yc);
-
-    Matrix6d Jac;
-    calculate_jac(cur_q,Jac);
-    //   ROS_INFO_STREAM("J:" << std::endl << Jac);
-
     utils::array2pose(goal,p_tmp,T_goal);
     T_goal.getBasis().getRPY(rg,pg,yg);
+
+    ROS_INFO_STREAM("RPY: " << rc << "," << pc << "," << yc << " -> " << rg << "," << pg << "," << yg);
+
+    double t_tmp[16];
+    utils::pose2array(utils::Transform2Pose(T_cur),t_tmp);
+    ROS_INFO_STREAM(utils::print_matrix(4,4,t_tmp,"T_CUR"));
+    utils::pose2array(utils::Transform2Pose(T_goal),t_tmp);
+    ROS_INFO_STREAM(utils::print_matrix(4,4,t_tmp,"T_GOAL"));
+    Matrix6d Jac;
+    calculate_jac(cur_q,Jac);
+    ROS_INFO_STREAM("J:" << std::endl << Jac);
+
 
     delta_x  << T_goal.getOrigin().getX()-T_cur.getOrigin().getX(),
             T_goal.getOrigin().getY()-T_cur.getOrigin().getY(),
             T_goal.getOrigin().getZ()-T_cur.getOrigin().getZ(),
-            rg-rc,pg-pc,yg-yc;
+            utils::constrainAngle(rg-rc),utils::constrainAngle(pg-pc),utils::constrainAngle(yg-yc);
 
-       ROS_INFO_STREAM("delta_x:" << delta_x);
+     ROS_INFO_STREAM("delta_x_constr:" << delta_x);
+
 
     delta_th=utils::pseudoinv(Jac)*delta_x;
     //delta_th=Jac.transpose()*delta_x;
-    //    ROS_INFO_STREAM("delta_th:" << delta_th);
+    ROS_INFO_STREAM("delta_th:" << delta_th);
 
     for (int i=0;i<6;i++) {
         delta_th_array[i]=delta_th(i);

@@ -17,20 +17,21 @@ UR5_Model::UR5_Model(){
 
     kdl_parser::treeFromParam("robot_description",robot_tree);
     robot_tree.getChain("base_link","ee_link",robot_chain);
+    Jac_solver=new KDL::ChainJntToJacSolver(robot_chain);
 
-/*
+    /*
     double Hand_mass=0.620;
     KDL::Vector Hand_cog(0.01,0,0.08);
     KDL::RigidBodyInertia Hand_inertia=KDL::RigidBodyInertia(Hand_mass,Hand_cog,Cube_Rot_Inertia(Hand_mass,0.08,0.12,0.2));
     robot_chain.addSegment(KDL::Segment("hand",KDL::Joint(),KDL::Frame::Identity(),Hand_inertia));
 */
     while(!init){
-       ros::spinOnce();
-       ros::Rate(10).sleep();
-   }
+        ros::spinOnce();
+        ros::Rate(10).sleep();
+    }
     ROS_INFO("GO!");
-   if(using_gazebo)    jo={2,1,0,3,4,5}; //'elbow_joint', 'shoulder_lift_joint', 'shoulder_pan_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint'
-   else jo={0,1,2,3,4,5};
+    if(using_gazebo)    jo={2,1,0,3,4,5}; //'elbow_joint', 'shoulder_lift_joint', 'shoulder_pan_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint'
+    else jo={0,1,2,3,4,5};
 
 }
 
@@ -62,14 +63,62 @@ void UR5_Model::joint_state_callback(const sensor_msgs::JointState::ConstPtr &ms
         q[i]=msg->position.at(jo[i]);
         pos_eig[i]=msg->position.at(jo[i]);
     }
-getGravityTorques(pos_eig);
+    getGravityTorques(pos_eig);
 }
 
 
 KDL::RotationalInertia UR5_Model::Cube_Rot_Inertia(double m,double w, double h, double d){
     return KDL::RotationalInertia((1/12)*m*((h*h)+d*d),
-                           (1/12)*m*((w*w)+d*d),
-                           (1/12)*m*((w*w)+h*h));
+                                  (1/12)*m*((w*w)+d*d),
+                                  (1/12)*m*((w*w)+h*h));
+}
+
+void UR5_Model::calculateJacobian(KDL::JntArray in){
+    KDL::Jacobian Jac=KDL::Jacobian(6);
+    ROS_INFO_STREAM("Joints: " << in.data);
+    Jac_solver->JntToJac(in,Jac);
+    ROS_INFO_STREAM("Jacobian:" << std::endl << Jac.data << std::endl << "Determinant " << Jac.data.determinant());
+
+
+/*
+    KDL::ChainIkSolverVel_pinv ik_sol_v=KDL::ChainIkSolverVel_pinv(robot_chain);
+    KDL::JntArrayVel vels=KDL::JntArrayVel(robot_chain.getNrOfJoints());
+    vels.q=in;
+    vels.qdot(0)=0.1;
+    vels.qdot(1)=0.01;
+    vels.qdot(2)=0.2;
+    vels.qdot(3)=0.3;
+    vels.qdot(4)=0.1;
+    vels.qdot(5)=0.4;
+
+    KDL::FrameVel cart_vel;
+    KDL::FrameVel des_vel=KDL::FrameVel();
+
+
+
+    KDL::ChainFkSolverVel_recursive fk_sol_v=KDL::ChainFkSolverVel_recursive(robot_chain);
+    fk_sol_v.JntToCart(vels,cart_vel);
+    ROS_INFO_STREAM(cart_vel.GetFrame().M.data<< "---" << cart_vel.GetFrame().p.data);
+    //cart_vel=KDL::FrameVel(KDL::Frame(KDL::Rotation(1,0,0,0,1,0,0,0,1),KDL::Vector(0,0,0.03)));
+
+    KDL::JntArrayVel vels2=KDL::JntArrayVel(robot_chain.getNrOfJoints());
+    ik_sol_v.CartToJnt(in,cart_vel,vels2);
+
+
+    ROS_INFO_STREAM("Pos: " << vels.q.data << "Vels:" << vels.qdot.data);
+
+
+
+    KDL::ChainIkSolverPos_LMA ik_sol_p=KDL::ChainIkSolverPos_LMA(robot_chain);
+    KDL::JntArray jnts=KDL::JntArray(robot_chain.getNrOfJoints());
+    ik_sol_p.CartToJnt(in,KDL::Frame(
+                           KDL::Rotation(1,0,0,
+                                         0,1,0,
+                                         0,0,1),
+                           KDL::Vector(0.2,0,0.3)),jnts);
+    ROS_INFO_STREAM("Pos_p: " << jnts.data);
+*/
+
 }
 
 Vector6d UR5_Model::getGravityTorques(Vector6d q){
@@ -118,7 +167,16 @@ Vector6d UR5_Model::getGravityTorques(Vector6d q){
         j_kdl.effort.push_back(grav_torq(i));
         j_array.data.push_back(grav_torq(i)*3.6/50);
     }
-pub_joint_torque.publish(j_array);
+    pub_joint_torque.publish(j_array);
+}
+
+void UR5_Model::run(){
+    KDL::JntArray joint_pos = KDL::JntArray(robot_chain.getNrOfJoints());
+
+    for (int i=0;i<robot_chain.getNrOfJoints();i++){
+        joint_pos(i)=cur_joints.position.at(i);
+    }
+    calculateJacobian(joint_pos);
 }
 
 
@@ -129,7 +187,8 @@ int main(int argc, char **argv){
     Vector6d q;
     while(ros::ok()){
         ros::spinOnce();
-     //   ur5->getGravityTorques(q);
+        //   ur5->getGravityTorques(q);
+        ur5->run();
         rate.sleep();
     }
 

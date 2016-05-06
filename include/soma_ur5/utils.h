@@ -2,7 +2,13 @@
 #define INCLUDE_SOMA_UR5_UTILS_H_
 
 
-#include <soma_ur5/controller.h>
+
+#include <Eigen/SVD>
+#include <Eigen/Dense>
+#include <math.h>
+#include <tf2/utils.h>
+#include <ros/ros.h>
+
 typedef Eigen::Matrix< double, 6, 6 > Matrix6d;
 typedef Eigen::Matrix< double, 6, 1 > Vector6d;
 
@@ -28,6 +34,12 @@ void array2pose(double pos[16],geometry_msgs::Pose &pose_out,tf2::Transform &tra
     pose_out.orientation=q_pose;
 
 
+}
+double constrainAngle(double x){
+    x = fmod(x + M_PI,2*M_PI);
+    if (x < 0)
+        x += 2*M_PI;
+    return x - M_PI;
 }
 
 

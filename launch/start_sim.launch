@@ -1,0 +1,6 @@
+<launch>
+<node pkg="rosservice" type="rosservice" name="resetter" args="call --wait /gazebo/set_model_configuration '{model_name: robot, urdf_param_name: robot_description, joint_names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint ], joint_positions: [1.0, -1.62, 2.25, -0.3, 0.2, 0.1]}'" />
+<node pkg="rosservice" type="rosservice" name="unpause" args="call --wait /gazebo/unpause_physics"/>
+<!--node pkg="rviz" type="rviz" name="rviz" /-->
+
+</launch>
