@@ -136,6 +136,7 @@ link_directories( ../../devel/lib lib)
 
 ## Declare a C++ executable
  add_executable(controller src/controller.cpp)
+ add_executable(ur5_controller src/ur5_controller_main.cpp)
  add_executable(haptic src/haptic.cpp)
  add_executable(gazebo_bridge src/gazebo_bridge.cpp)
  add_executable(pisa_hand_bridge src/pisa_hand_bridge.cpp)
@@ -147,6 +148,7 @@ link_directories( ../../devel/lib lib)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
  add_dependencies(controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+ add_dependencies(ur5_controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(haptic ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(gazebo_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(pisa_hand_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -157,6 +159,7 @@ link_directories( ../../devel/lib lib)
 
 ## Specify libraries to link a library or executable target against
  target_link_libraries(controller    ${catkin_LIBRARIES}   ur5_kin )
+ target_link_libraries(ur5_controller    ${catkin_LIBRARIES})
  target_link_libraries(ur5_model   ${catkin_LIBRARIES}   ur5_kin )
  target_link_libraries(haptic ${catkin_LIBRARIES} drd dhd pthread usb-1.0 )
  target_link_libraries(gazebo_bridge   ${catkin_LIBRARIES} )

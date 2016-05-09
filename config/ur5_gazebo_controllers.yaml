@@ -26,7 +26,7 @@ vel_controller5:
   joint: wrist_3_joint
   pid: {p: 1.0, i: 0.10, d: 0.10}  #  pid: {p: 10000000.0, i: 1.0, d: 1000.0}
 vel_controller:
-  type: velocity_controllers/JointTrajectoryController
+  type: velocity_controllers/JointGroupVelocityController
   joints:
      - shoulder_pan_joint
      - shoulder_lift_joint

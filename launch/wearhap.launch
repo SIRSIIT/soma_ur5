@@ -10,7 +10,7 @@
   <!-- send robot urdf to param server -->
   <include if="$(arg simulated)" file="$(find soma_ur5)/launch/ur5_gazebo.launch"/>
   <include if="$(arg simulated)" file="$(find soma_ur5)/launch/ur5_control_gazebo.launch"/>
-  <!--node if="$(arg simulated)" pkg="soma_ur5" type="gazebo_bridge" name="gazebo_bridge"/-->
+  <node if="$(arg simulated)" pkg="soma_ur5" type="gazebo_bridge" name="gazebo_bridge"/>
 
   <!-- push robot_description to factory and spawn robot in gazebo -->
   
@@ -18,7 +18,7 @@
     <arg name="robot_ip" value="$(arg robot_ip)"/>
   </include>
   <include unless="$(arg simulated)" file="$(find qb_interface)/launch/qb_interface.launch"/>
-  <node pkg="soma_ur5" type="controller" name="controller"/>
+  <node pkg="soma_ur5" type="ur5_controller" name="ur5_controller"/>
 
 <!-- Leap motion -->
   <node pkg="leap_motion" type="sender.py" name="sender"/>

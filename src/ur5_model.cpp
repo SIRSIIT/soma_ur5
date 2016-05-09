@@ -80,6 +80,7 @@ void UR5_Model::calculateJacobian(KDL::JntArray in){
     ROS_INFO_STREAM("Jacobian:" << std::endl << Jac.data << std::endl << "Determinant " << Jac.data.determinant());
 
 
+
 /*
     KDL::ChainIkSolverVel_pinv ik_sol_v=KDL::ChainIkSolverVel_pinv(robot_chain);
     KDL::JntArrayVel vels=KDL::JntArrayVel(robot_chain.getNrOfJoints());
