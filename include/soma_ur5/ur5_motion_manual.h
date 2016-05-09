@@ -49,7 +49,9 @@ public:
 
         deltaX=getDeltaX(cur_pose,goal_pose);
         Jacobian=getJacobian(cur_joints);
-        deltaTh=utils::pseudoinv(Jacobian)*deltaX;
+
+        if(Jacobian.determinant()<0.001) deltaTh=safeFwdKin(cur_pose,goal_pose);
+        else deltaTh=utils::pseudoinv(Jacobian)*deltaX;
 
         trajectory_msgs::JointTrajectoryPoint p;
         for(int i=0;i<cur_joints.name.size();i++){
@@ -70,6 +72,8 @@ protected:
         double r,p,y;
         Vector6d fw;
         double T_j[16];
+        double sols[36];
+
         ur_kinematics::forward(q,T_j);
         tf2::Matrix3x3(T_j[0],T_j[1],T_j[2],
                 T_j[4],T_j[5],T_j[6],
@@ -79,43 +83,71 @@ protected:
 
     }
 
-    Vector6d getDeltaX(geometry_msgs::Pose cur,geometry_msgs::Pose goal){
-        tf2::Transform T_cur=Tb_ee;
-        tf2::Transform T_goal;
-        double rc,pc,yc,rg,pg,yg;
-        Vector6d delta_x;
 
-        T_goal=utils::Pose2Transform(goal);
-        T_cur.getBasis().getRPY(rc,pc,yc);
-        T_goal.getBasis().getRPY(rg,pg,yg);
-        delta_x  << T_goal.getOrigin().getX()-T_cur.getOrigin().getX(),
-                T_goal.getOrigin().getY()-T_cur.getOrigin().getY(),
-                T_goal.getOrigin().getZ()-T_cur.getOrigin().getZ(),
-                utils::constrainAngle(rg-rc),utils::constrainAngle(pg-pc),utils::constrainAngle(yg-yc);
-        return delta_x;
-    }
 
-    Matrix6d getJacobian(sensor_msgs::JointState j){
-        Matrix6d J;
-        Vector6d cur_c,nc;
-        double cur_q[j.name.size()],next_q[j.name.size()];
-        double h=0.001;
+    Vector6d safeFwdKin(geometry_msgs::Pose cur,geometry_msgs::Pose goal){
+        double T_g[16];
+        double sols[36];
+        utils::pose2array(goal,T_g);
+        int nsols=ur_kinematics::inverse(T_g,sols);
+        double min_cost=999;
+        Vector6d cj,sol,best;
+        cj << utils:: constrainAngle(cur_joints.position[0]),utils:: constrainAngle(cur_joints.position[1]),
+                utils:: constrainAngle(cur_joints.position[2]),utils:: constrainAngle(cur_joints.position[3]),
+                utils:: constrainAngle(cur_joints.position[4]),utils:: constrainAngle(cur_joints.position[5]);
 
-        for(int i=0;i<6;i++) cur_q[i]=j.position.at(i);
-        cur_c=fwd_kin(cur_q);
 
-        for(int i=0;i<6;i++) {
-            for(int j=0;j<6;j++) {
-                next_q[j]=cur_q[j];
+        for(int i=0;i<nsols;i++){
+            for (int j=0;j<6;j++){
+                sol[j]=utils::constrainAngle(sols[i*6]+j);
             }
-            next_q[i]+=h;
-            nc=fwd_kin(next_q);
-            J.col(i) = 1/h*(nc-cur_c).col(0);
+            double cost=(sol-cj).norm();
+            if(cost <min_cost) {
+                best=sol;
+                min_cost=cost;
+            }
         }
-        return J;
-    }
+        ROS_INFO("Trying to avoid singularity...");
+        return (sol-cj);
+        }
 
-};
+        Vector6d getDeltaX(geometry_msgs::Pose cur,geometry_msgs::Pose goal){
+            tf2::Transform T_cur=Tb_ee;
+            tf2::Transform T_goal;
+            double rc,pc,yc,rg,pg,yg;
+            Vector6d delta_x;
+
+            T_goal=utils::Pose2Transform(goal);
+            T_cur.getBasis().getRPY(rc,pc,yc);
+            T_goal.getBasis().getRPY(rg,pg,yg);
+            delta_x  << T_goal.getOrigin().getX()-T_cur.getOrigin().getX(),
+                    T_goal.getOrigin().getY()-T_cur.getOrigin().getY(),
+                    T_goal.getOrigin().getZ()-T_cur.getOrigin().getZ(),
+                    utils::constrainAngle(rg-rc),utils::constrainAngle(pg-pc),utils::constrainAngle(yg-yc);
+            return delta_x;
+        }
+
+        Matrix6d getJacobian(sensor_msgs::JointState j){
+            Matrix6d J;
+            Vector6d cur_c,nc;
+            double cur_q[j.name.size()],next_q[j.name.size()];
+            double h=0.001;
+
+            for(int i=0;i<6;i++) cur_q[i]=j.position.at(i);
+            cur_c=fwd_kin(cur_q);
+
+            for(int i=0;i<6;i++) {
+                for(int j=0;j<6;j++) {
+                    next_q[j]=cur_q[j];
+                }
+                next_q[i]+=h;
+                nc=fwd_kin(next_q);
+                J.col(i) = 1/h*(nc-cur_c).col(0);
+            }
+            return J;
+        }
+
+    };
 
 
 

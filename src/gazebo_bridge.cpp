@@ -28,7 +28,7 @@ void GazeboBridge::pos_callback(const trajectory_msgs::JointTrajectory::ConstPtr
     std_msgs::Float64 comm;
     if(msg->points.at(0).velocities.size()==6){
         for (size_t i=0;i<6;i++){
-            comm.data=cur_joints.position.at(i)+0.1*msg->points.at(0).velocities.at(i);
+            comm.data=cur_joints.position.at(i)+0.05*msg->points.at(0).velocities.at(i);
             pub_vels.at(i).publish(comm);
         }
         last=ros::Time::now();
