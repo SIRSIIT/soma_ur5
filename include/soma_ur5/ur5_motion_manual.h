@@ -50,8 +50,10 @@ public:
         deltaX=getDeltaX(cur_pose,goal_pose);
         Jacobian=getJacobian(cur_joints);
 
-        if(Jacobian.determinant()<0.001) deltaTh=safeFwdKin(cur_pose,goal_pose);
-        else deltaTh=utils::pseudoinv(Jacobian)*deltaX;
+        //if(Jacobian.determinant()<0.001) deltaTh=safeFwdKin(cur_pose,goal_pose);
+       // else deltaTh=utils::pseudoinv(Jacobian)*deltaX;
+
+        deltaTh=utils::pseudoinv(Jacobian)*deltaX;
 
         trajectory_msgs::JointTrajectoryPoint p;
         for(int i=0;i<cur_joints.name.size();i++){
