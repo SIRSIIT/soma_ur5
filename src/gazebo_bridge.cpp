@@ -31,10 +31,10 @@ GazeboBridge::GazeboBridge(){
 
 void GazeboBridge::joint_callback(const sensor_msgs::JointState::ConstPtr &msg){
     if(!started){
-        jo.resize(msg->name.size());
-        for (int i=0;i<msg->name.size();i++){
+        jo.resize(joint_names.size());
+        for (int i=0;i<jo.size();i++){
             for (int j=0;j<msg->name.size();j++){
-                if(msg->name.at(i)==joint_names.at(j)){
+                if(msg->name.at(j)==joint_names.at(i)){
                     jo[i]=j;
                 }
             }

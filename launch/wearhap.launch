@@ -7,10 +7,10 @@
   <param name="use_sim_time" value="false" unless="$(arg simulated)" />
   <param name="use_sim_time" value="true" if="$(arg simulated)" />
 
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find soma_ur5)/robot/ur5_soma.urdf.xacro'" />
+
   <!-- send robot urdf to param server -->
   <include if="$(arg simulated)" file="$(find soma_ur5)/launch/ur5_gazebo.launch"/>
-  <include if="$(arg simulated)" file="$(find soma_ur5)/launch/ur5_control_gazebo.launch"/>
-  <node if="$(arg simulated)" pkg="soma_ur5" type="gazebo_bridge" name="gazebo_bridge"/>
 
   <!-- push robot_description to factory and spawn robot in gazebo -->
   

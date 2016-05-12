@@ -7,12 +7,24 @@ void UR5_Control_ROS::run(){
         ros::Rate(100).sleep();
     }
 }
+ trajectory_msgs::JointTrajectory  UR5_Control_ROS::safety_enforcer( trajectory_msgs::JointTrajectory in){
+
+     trajectory_msgs::JointTrajectory out=in;
+     for (int i=0;i<in.points.size();i++){
+         for (int j=0;j<in.points.at(i).velocities.size();j++){
+             out.points.at(i).velocities.at(j)=std::max(std::min(max_speed,
+                                              out.points.at(i).velocities.at(j)
+                                                                 ),-max_speed);
+         }
+     }
+     return out;
+ }
 
 void UR5_Control_ROS::goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &msg){
     trajectory_msgs::JointTrajectory vels;
     vels=ur5_model->calcSpeeds(ur5_model->getEEpose(),msg->pose,speed_gain);
 
-    speed_command.publish(vels);
+    speed_command.publish(safety_enforcer(vels));
 }
 
 void UR5_Control_ROS::joint_update(const sensor_msgs::JointState &jnt){

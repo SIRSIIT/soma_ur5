@@ -57,6 +57,7 @@ public:
         nh->getParam("limits/joints", map_j_lim);
         nh->getParam("control_topic", control_topic);
         nh->getParam("limits/max_angle", max_angle);
+        nh->getParam("limits/max_speed", max_speed);
 
         std::string solv_str;
         nh->getParam("solver",solv_str);
@@ -69,17 +70,19 @@ public:
     }
     void run();
     void joint_update(const sensor_msgs::JointState &jnt);
+    trajectory_msgs::JointTrajectory  safety_enforcer(trajectory_msgs::JointTrajectory in);
 
 protected:
     ros::Subscriber sub_joints,sub_goal_pose;
     ros::Publisher pub_ee_pose,speed_command;
 
+
     void joint_state_callback(const sensor_msgs::JointState::ConstPtr &msg){
         if(!init){
-            jo.resize(msg->name.size());
-            for (int i=0;i<msg->name.size();i++){
+            jo.resize(joint_names.size());
+            for (int i=0;i<jo.size();i++){
                 for (int j=0;j<msg->name.size();j++){
-                    if(msg->name.at(i)==joint_names.at(j)){
+                    if(msg->name.at(j)==joint_names.at(i)){
                         jo[i]=j;
                     }
                 }
@@ -119,7 +122,7 @@ protected:
     std::vector<int> jo;
     std::map<std::string,double> map_j_lim,map_ws_lim;
     std::string control_topic;
-    double max_angle;
+    double max_angle,max_speed;
     int solver;
     std::vector<std::string> joint_names{"shoulder_pan_joint","shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"};
 

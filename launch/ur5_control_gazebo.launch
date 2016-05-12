@@ -1,13 +1,19 @@
 <launch>
+    <arg name="soft_hand_enabled" default="false"/>
 
   <rosparam file="$(find soma_ur5)/config/ur5_gazebo_controllers.yaml" command="load"/>
   <!--rosparam file="$(find ur_modern_driver)/config/ur5_controllers.yaml" command="load"/-->
 
   <!-- load the controllers -->
-  <node name="controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false"
+  <node ns="ur5_controllers" name="controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false"
     output="screen" args="spawn joint_state_controller vel_controller0 vel_controller1 vel_controller2 vel_controller3 vel_controller4 vel_controller5"/>
     <!--node name="traj_controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false"
     output="screen" args="spawn joint_state_controller vel_controller "/-->
 
-
+  <group ns="soft_hand">
+	<node name="controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false"
+    output="screen" args="spawn joint_trajectory_controller"/>
+    <rosparam file="$(find kinematic_synergy_example)/config/controllers.yaml" command="load"/>
+</group>
+  
 </launch>

@@ -3,6 +3,7 @@ limits:
   workspace: {x_min: -1.01, x_max: 1.0, y_min: -1, y_max: 1.01, z_min: -0.1, z_max: 0.8}  
   joints: {j0_min: -220, j0_max: 230, j1_min: -180, j1_max: 180, j2_min: -180, j2_max: 180, j3_min: -180, j3_max: 180, j4_min: -180, j4_max: 80, j5_min: -180, j5_max: 180}
   max_angle: 15.0
+  max_speed: 0.3
 #control_topic: "/vel_based_pos_traj_controller/follow_joint_trajectory"
 control_topic: "/follow_joint_trajectory/"
 solver: "jacobian"  # jacobian, closed_form
