@@ -48,7 +48,7 @@ void GazeboBridge::joint_callback(const sensor_msgs::JointState::ConstPtr &msg){
         cur_joints.name.at(i)=msg->name.at(jo[i]);
         cur_joints.position.at(i)=msg->position.at(jo[i]);
         cur_joints.velocity.at(i)=msg->velocity.at(jo[i]);
-        cur_joints.effort.at(i)=msg->effort.at(jo[i]);
+        cur_joints.effort.at(i)=msg->effort.at(jo[i]);        
     }
 }
 
