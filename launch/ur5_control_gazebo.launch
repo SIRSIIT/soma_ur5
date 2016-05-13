@@ -1,16 +1,31 @@
 <launch>
     <arg name="soft_hand_enabled" default="false"/>
-
+    <arg name="use_grasp_estimator" default="false"/>
+     
   <rosparam file="$(find soma_ur5)/config/ur5_gazebo_controllers.yaml" command="load"/>
   <!--rosparam file="$(find ur_modern_driver)/config/ur5_controllers.yaml" command="load"/-->
-  <!--rosparam file="$(find kinematic_synergy_example)/config/controllers.yaml" command="load"/-->
+  <rosparam file="$(find adaptive_example)/config/controllers.yaml" command="load"/>
+
+	<rosparam command="load" file="$(find adaptive_example)/config/joint_names.yaml" />
+
+	<!-- load the controllers in current namespace -->
+	<!--node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="true" output="screen"  args="joint_state_controller joint_trajectory_controller"/-->
+
+	<!-- grasp estimator -->
+	<group if="$(arg use_grasp_estimator)">
+		<rosparam command="load" file="$(find grasp_state_publisher)/config/softgrasp.yaml" />
+		<node name="grasp_state_publisher" pkg="grasp_state_publisher" type="grasp_state_publisher" respawn="true" output="screen" />
+	</group>
+
 
 
   <!-- load the controllers -->
-  <node name="controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false"
-    output="screen" args="spawn joint_state_controller vel_controller0 vel_controller1 vel_controller2 vel_controller3 vel_controller4 vel_controller5 joint_trajectory_controller"/>
+  	<group ns="ur5_arm">
+  		<node name="controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false" 
+    		output="screen" args="spawn joint_state_controller vel_controller0 vel_controller1 vel_controller2 vel_controller3 vel_controller4 vel_controller5"/>
+	</group>
     <!--node name="traj_controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false"
-    output="screen" args="spawn joint_state_controller vel_controller "/-->
+    output="screen" args="spawn joint_state_controller vel_controller  joint_trajectory_controller"/-->
 
   
 </launch>
