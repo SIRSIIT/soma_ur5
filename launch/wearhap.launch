@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="robot_ip" default="192.168.1.102"/>
-  <arg name="simulated" default="true"/>
   
 <!-- UR5 Stuff-->
   <rosparam file="$(find soma_ur5)/config/ur5_settings.yaml" command="load"/>
@@ -14,7 +13,7 @@
   <include if="$(arg simulated)" file="$(find soma_ur5)/launch/ur5_gazebo.launch"/>
 
   <!-- push robot_description to factory and spawn robot in gazebo -->
-  <group ns="ur5_arm">
+  
   <include unless="$(arg simulated)" file="$(find ur_modern_driver)/launch/ur5_bringup_joint_limited.launch">
     <arg name="robot_ip" value="$(arg robot_ip)"/>
   </include>
@@ -29,7 +28,6 @@
 <!-- Haptic band -->
   <node pkg="soma_ur5" type="haptic_band" name="haptic_band"/>
 
-</group>
 <!-- ATI sensor -->
  <node unless="$(arg simulated)" pkg="netft_rdt_driver" type="netft_node" name="netft_node" args="--address 192.168.1.1" />
  <!--node unless="$(arg simulated)" pkg="soma_ur5" type="ati_bridge" name="ati_bridge" /-->

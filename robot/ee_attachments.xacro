@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" 
+       name="ee_attachments">
+
+
+<xacro:property name="M_PI" value="3.1415926535897931"/>
+	<xacro:macro name="cuboid_inertia_def" params="width height length mass">
+	<inertia ixx="${mass * (height * height + length * length) / 12}"
+			 iyy="${mass * (width * width + length * length) / 12}"
+			 izz="${mass * (width * width + height * height) / 12}"
+			 ixy="0" iyz="0" ixz="0"/>
+	</xacro:macro>
+	<xacro:macro name="cylinder_inertia_def" params="radius length mass">
+	<inertia ixx="${mass * (3 * radius * radius + length * length) / 12}"
+			 iyy="${mass * radius* radius / 2}"
+			 izz="${mass * (3 * radius * radius + length * length) / 12}"
+			 ixy="0" iyz="0" ixz="0"/>
+	</xacro:macro>
+
+	<xacro:macro name="wrist_sensor" params="parent child">
+
+	
+		<joint name="wrist_joint" type="fixed">
+		    <origin xyz="0 0 0.01" rpy="0 0 0"/>
+			<parent link="${parent}"/>
+			<child link="ati_base"/>
+			<!--limit lower="-0.00001" upper="0.00001" effort="100" velocity="100"/>
+			<axis xyz="0 0 1" /-->
+		</joint>
+
+
+    <link name="ati_base">      
+      <inertial>
+				<mass value="0.255"/>
+				<origin xyz="0 0 0.0"  />
+				<xacro:cylinder_inertia_def radius="0.0377" length="0.02" mass="0.255"/>
+			</inertial>
+			<visual>
+				<!-- origin xyz="0 0 0.00725" rpy="0 0 0"/ -->
+				<origin xyz="0 0.0 0" rpy="0 0 0"/>
+				<geometry>
+					<cylinder radius="0.0377" length="0.02"/>
+					<!--mesh filename="package://force_torque_sensor/model/meshes/ati_gamma.stl"/-->
+				</geometry>
+				 <material name="blue">
+				 	<color rgba="0 0 .8 1"/>
+				 </material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0.0" rpy="0 0 0"/>
+				<geometry>
+					<cylinder radius="0.0377" length="0.02"/>
+				</geometry>
+			</collision>
+    </link>
+
+
+<joint name="wrist_sensor_joint" type="revolute">
+		    <parent link="ati_base"/>		    
+			<child link="ati_base_measurement"/>
+			<origin xyz="0 0 0.0165" rpy="0 0 0"/>			
+   			<axis xyz="0 0 1" />
+			<limit lower="0" upper="0" effort="100.0" velocity="1.0"/>
+			<dynamics damping="0.0" friction="0.0"/>
+</joint>
+
+
+     <link name="${child}">      
+      <inertial>
+				<mass value="0.255"/>
+				<origin xyz="0 0 0.0"  />
+				<xacro:cylinder_inertia_def radius="0.0377" length="0.013" mass="0.255"/>
+			</inertial>
+			<visual>
+				<!-- origin xyz="0 0 0.00725" rpy="0 0 0"/ -->
+				<origin xyz="0 0 0" rpy="0 0 0"/>
+				<geometry>
+					<cylinder radius="0.0377" length="0.013"/>
+					<!--mesh filename="package://force_torque_sensor/model/meshes/ati_gamma.stl"/-->
+				</geometry>
+				 <material name="red">
+				 	<color rgba="0.8 0 0.0 1"/>
+				 </material>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0.0" rpy="0 0 0"/>
+				<geometry>
+					<cylinder radius="0.0377" length="0.013"/>
+				</geometry>
+			</collision>
+    </link>
+
+
+<gazebo reference="wrist_sensor_joint">
+<provideFeedback>true</provideFeedback>
+</gazebo>
+
+<gazebo>
+<plugin name="ft_sensor" filename="libgazebo_ros_ft_sensor.so">
+<updateRate>100.0</updateRate>
+<topicName>ft_sensor_topic</topicName>
+<jointName>wrist_sensor_joint</jointName>
+</plugin>
+</gazebo>
+
+
+  <transmission name="sensor_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="wrist_sensor_joint">
+        <hardwareInterface>VelocityJointInterface</hardwareInterface>        
+      </joint>
+
+      <actuator name="wrist_sensor_joint_motor">
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+	</xacro:macro>
+</robot>

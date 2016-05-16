@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" 
+       name="ur5_soma">
+  <xacro:include filename="$(find soft_hand_description)/model/soft_hand.urdf.xacro"/>
+  <xacro:include filename="$(find force_torque_sensor)/model/ft_sensor.urdf.xacro"/>
+  <!-- ur5 -->
+  <xacro:include filename="$(find ur_description)/urdf/ur5.urdf.xacro" />
+  <xacro:include filename="$(find ur_description)/urdf/common.gazebo.xacro" />
+
+
+  <!-- arm -->
+  <xacro:ur5_robot prefix="ur5_arm/" joint_limited="true"/>
+
+  <link name="world" />
+
+  <joint name="world_joint" type="fixed">
+    <parent link="world" />
+    <child link = "ur5_arm/base_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+
+
+  
+  <xacro:include filename="$(find soma_ur5)/robot/ee_attachments.xacro" />
+  
+  <xacro:wrist_sensor parent="ur5_arm/base_link" child="ati_base_measurement"/> <!--tool0 -->
+  
+
+  <!--xacro:ft_sensor parent="tool0" name="wrist" type="ati_gamma">
+    <origin xyz="0 0 0.0165" rpy="0 0 0"/>    
+  </xacro:ft_sensor-->
+
+
+
+  <!--joint name="hand_attachment_joint" type="revolute">
+    <parent link="wrist_ati_gamma_measure" />
+    <child link = "hand_attachment" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <limit lower="-0.00001" upper="0.00001" effort="100" velocity="100"/>
+    <axis xyz="0 0 1" />
+  </joint-->
+
+ 
+
+
+  <!--xacro:soft_hand parent="ati_base_measurement" name="soft_hand" left="true" withAdaptiveTransmission="false" useMimicTag="false">
+    <origin xyz="0 0 0.0" rpy="0 0 0"/>
+  </xacro:soft_hand-->
+
+
+
+ <!-- Frame coincident with all-zeros TCP on UR controller -->    
+    <!--link name="hand_attachment">      
+
+      <collision>
+        <geometry>
+          <box size="0.01 0.01 0.01"/>
+        </geometry>
+        <origin rpy="0 0 0" xyz="0.01 0 0"/>
+      </collision>
+    </link-->
+
+
+</robot>
