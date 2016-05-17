@@ -24,6 +24,12 @@ void UR5_Control_ROS::goal_pose_callback(const geometry_msgs::PoseStamped::Const
     trajectory_msgs::JointTrajectory vels;
     vels=ur5_model->calcSpeeds(ur5_model->getEEpose(),msg->pose,speed_gain);
 
+    for(int i=0;i<6;i++){
+        ROS_INFO("%d %f %f %f",i,vels.points.at(0).velocities.at(i),
+                 safety_enforcer(vels).points.at(0).velocities.at(i),max_speed);
+    }
+
+
     speed_command.publish(safety_enforcer(vels));
 }
 

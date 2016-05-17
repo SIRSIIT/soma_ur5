@@ -56,7 +56,7 @@ void GazeboBridge::keep_position(){
     std_msgs::Float64 comm;
     double Kp=12.0;
     for (size_t i=0;i<6;i++){
-        //ROS_INFO("J%d : %f - %f",i,jp_to_keep.position.at(i),cur_joints.position.at(i));
+        ROS_WARN("J%d : %f - %f",i,jp_to_keep.position.at(i),cur_joints.position.at(i));
         comm.data=Kp*(jp_to_keep.position.at(i)-cur_joints.position.at(i));
         pub_vels.at(i).publish(comm);
     }
