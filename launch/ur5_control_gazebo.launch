@@ -20,8 +20,8 @@
 
 
   <!-- load the controllers -->
-  		<node name="controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false" 
-    		output="screen" args="spawn joint_state_controller vel_controller0 vel_controller1 vel_controller2 vel_controller3 vel_controller4 vel_controller5"/>
+  		<!--node name="controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false" 
+    		output="screen" args="spawn joint_state_controller vel_controller0 vel_controller1 vel_controller2 vel_controller3 vel_controller4 vel_controller5"/-->
     <!--node name="traj_controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false"
     output="screen" args="spawn joint_state_controller vel_controller  joint_trajectory_controller"/-->
 
