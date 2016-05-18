@@ -5,19 +5,34 @@
   <arg name="simulated" default="true"/>
   <arg name="hand" default="false"/>
 
+
+<!--copy-pasted kinematic_synergy-->
+  <arg name="gui" default="false"/>
+    <arg name="use_rviz" default="false"/>
+    <arg name="use_joint_state_publisher" default="false"/>
+    <arg name="use_grasp_estimator" default="false"/>
+
+    <!-- configure whether the real hardware is enabled or not -->
+    <arg name="soft_hand_enabled" default="false"/>
+
+    <!-- choose whether or not to start the full robot simulation -->
+    <arg name="use_robot_sim" default="true"/>
+<!-- end of copy-pasted kinematic_synergy-->
+
+
+
+
   <param name="robot_description" command="$(find xacro)/xacro.py '$(find soma_ur5)/robot/ur5_soma.urdf.xacro'" if="$(arg hand)"/>
   <param name="robot_description" command="$(find xacro)/xacro.py '$(find ur_description)/urdf/ur5_joint_limited_robot.urdf.xacro'" unless="$(arg hand)"/>
 
+      
 
   <rosparam file="$(find soma_ur5)/config/ur5_settings.yaml" command="load"/>
   <param name="use_sim_time" value="false" unless="$(arg simulated)" />
   <param name="use_sim_time" value="true" if="$(arg simulated)" />
 
 
-  
-
-
-<group if="$(arg simulated)">
+<!--group if="$(arg simulated)">
   <include file="$(find soma_ur5)/launch/ur5_gazebo.launch"/>
 </group>
 
@@ -27,6 +42,57 @@
   </include>
   <include if="$(arg hand)" file="$(find qb_interface)/launch/qb_interface.launch"/>
 </group>
-  <node pkg="soma_ur5" type="ur5_controller" name="ur5_controller"/>
+  <node pkg="soma_ur5" type="ur5_controller" name="ur5_controller"/-->
+
+    <rosparam file="$(find soma_ur5)/config/ur5_gazebo_controllers.yaml" command="load"/>
+    <node name="controller_spawner_j" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="spawn joint_state_controller"/>
+
+<group ns="ur5">
+    <rosparam file="$(find soma_ur5)/config/ur5_gazebo_controllers.yaml" command="load"/>
+  		<node name="controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="spawn vel_controller0 vel_controller1 vel_controller2 vel_controller3 vel_controller4 vel_controller5"/>
+</group>
+ 
+ <group ns="soft_hand">
+ 	    <!-- load controller configurations -->
+    <rosparam file="$(find adaptive_example)/config/controllers.yaml" command="load"/>
+
+</group>
+
+
+    <param name="publish_frequency" value="100"/>
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"  />
+
+    <group if="$(arg use_rviz)">
+        <node name="my_rviz" pkg="rviz" type="rviz" respawn="false" args="-d $(find adaptive_example)/launch/my_rviz.rviz" output="screen"/>
+    </group>
+
+
+    <!-- #### simulation -->
+    <group if="$(arg use_robot_sim)">
+        <!-- Spawn the full robot into Gazebo  -->
+
+        <!-- load Gazebo simulation environment -->
+        <include file="$(find gazebo_ros)/launch/empty_world.launch">
+            <arg name="world_name" value="$(find adaptive_example)/worlds/simple_environment.world"/>
+            <arg name="paused" value="true"/>
+            <!-- when using the real/sim scenario in parallel, set "use_sim_time" to false -->
+            <arg name="use_sim_time" value="true"/>
+            <arg name="gui" value="true"/>
+            <arg name="headless" value="true"/>
+            <arg name="debug" value="true"/>
+            <arg name="verbose" value="true"/>
+        </include>
+         <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model soft_hand -x 0 -y 0 -z 1.0 -R 0 -P 0 -Y 0" respawn="false" output="screen"/>
+    </group>
+
+    <!-- #### components -->
+    <group ns="soft_hand">
+      <!--param name="robot_description" command="$(find xacro)/xacro.py $(find adaptive_example)/robot/soft_hand_adaptive.urdf.xacro use_mimic_tag:=true"/-->
+
+      <!-- load the controllers in current namespace -->
+      <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="true" output="screen"  args="joint_trajectory_controller"/>
+
+    </group>
+
 
   </launch>

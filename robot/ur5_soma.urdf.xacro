@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" 
-       name="ur5_soma">
+       name="soft_hand">
   <xacro:include filename="$(find soft_hand_description)/model/soft_hand.urdf.xacro"/>
   <xacro:include filename="$(find force_torque_sensor)/model/ft_sensor.urdf.xacro"/>
-  <!-- ur5 -->
+  
   <xacro:include filename="$(find ur_description)/urdf/ur5.urdf.xacro" />
   <xacro:include filename="$(find ur_description)/urdf/common.gazebo.xacro" />
   <xacro:include filename="$(find soma_ur5)/robot/ee_attachments.xacro" />
@@ -21,19 +21,15 @@
   </joint>
 
 
-  
-  
-  <xacro:wrist_sensor parent="tool0" child="ati_base_measurement"/> <!--tool0 -->
+  <xacro:wrist_sensor parent="tool0" child="ati_base_measurement"/> 
   
 
 
 
-<joint name="merdose_joint" type="fixed">
+<!--joint name="merdose_joint" type="fixed">
         <origin xyz="0 0 0.01" rpy="0 0 0"/>
       <parent link="ati_base_measurement"/>
       <child link="merdose"/>
-      <!--limit lower="-0.00001" upper="0.00001" effort="100" velocity="100"/>
-      <axis xyz="0 0 1" /-->
     </joint>
 
 
@@ -44,11 +40,9 @@
         <xacro:cylinder_inertia_def radius="0.0177" length="0.2" mass="0.255"/>
       </inertial>
       <visual>
-        <!-- origin xyz="0 0 0.00725" rpy="0 0 0"/ -->
         <origin xyz="0 0.0 0" rpy="0 0 0"/>
         <geometry>
           <cylinder radius="0.0177" length="0.2"/>
-          <!--mesh filename="package://force_torque_sensor/model/meshes/ati_gamma.stl"/-->
         </geometry>
          <material name="green">
           <color rgba="0 .8 0 1"/>
@@ -60,9 +54,7 @@
           <cylinder radius="0.0177" length="0.2"/>
         </geometry>
       </collision>
-    </link>
-
-
+    </link-->
 
   <!--xacro:ft_sensor parent="tool0" name="wrist" type="ati_gamma">
     <origin xyz="0 0 0.0165" rpy="0 0 0"/>    
@@ -78,11 +70,31 @@
     <axis xyz="0 0 1" />
   </joint-->
 
- 
+  <!--link name="box">
+    <inertial>
+      <mass value="50.0"/>
+      <inertia  ixx="1" ixy="0.00"  ixz="0.00" iyy="1" iyz="0.00" izz="1" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.50" rpy="0 0 0"/>
+      <geometry>
+        <box size="1.0 1.0 1.0"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.50" rpy="0 0 0"/>
+      <geometry>
+        <box size="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
 
+  <gazebo reference="box">
+    <static>true</static>
+  </gazebo-->
 
-  <xacro:soft_hand parent="merdose" name="soft_hand" left="true" withAdaptiveTransmission="true" useMimicTag="true">
-    <origin xyz="0 0 0.1" rpy="0 0 0"/>
+  <xacro:soft_hand parent="ati_base_measurement" name="soft_hand"  withAdaptiveTransmission="true" useMimicTag="false" left="false">
+    <origin xyz="0 0 0.01" rpy="0 0 0"/>
   </xacro:soft_hand>
 
 

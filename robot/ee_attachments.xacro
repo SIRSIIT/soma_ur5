@@ -105,6 +105,8 @@
 
 
   <transmission name="sensor_trans">
+        <robotNamespace>ati</robotNamespace>
+
       <type>transmission_interface/SimpleTransmission</type>
       <joint name="wrist_sensor_joint">
         <hardwareInterface>VelocityJointInterface</hardwareInterface>        
