@@ -10,3 +10,77 @@ solver: "jacobian"  # jacobian, closed_form
 #scale_factor: 0.1
 #hand:
 #  grip_force_scale: 0.001
+
+joint_limits:
+  shoulder_pan_joint:
+    has_position_limits: true
+    min_position: -1.01
+    max_position: 1.0
+    has_velocity_limits: true
+    max_velocity: 0.01
+    has_acceleration_limits: true
+    max_acceleration: 1.0
+    has_jerk_limits: true
+    max_jerk: 10.0
+    has_effort_limits: true
+    max_effort: 28.0
+  shoulder_lift_joint:
+    has_position_limits: true
+    min_position: -1.01
+    max_position: 1.0
+    has_velocity_limits: true
+    max_velocity: 0.01
+    has_acceleration_limits: true
+    max_acceleration: 1.0
+    has_jerk_limits: true
+    max_jerk: 10.0
+    has_effort_limits: true
+    max_effort: 28.0
+  elbow_joint:
+    has_position_limits: true
+    min_position: -1.01
+    max_position: 1.0
+    has_velocity_limits: true
+    max_velocity: 0.01
+    has_acceleration_limits: true
+    max_acceleration: 1.0
+    has_jerk_limits: true
+    max_jerk: 10.0
+    has_effort_limits: true
+    max_effort: 28.0
+  wrist_1_joint:
+    has_position_limits: true
+    min_position: -1.01
+    max_position: 1.0
+    has_velocity_limits: true
+    max_velocity: 0.01
+    has_acceleration_limits: true
+    max_acceleration: 1.0
+    has_jerk_limits: true
+    max_jerk: 10.0
+    has_effort_limits: true
+    max_effort: 28.0
+  wrist_2_joint:
+    has_position_limits: true
+    min_position: -1.01
+    max_position: 1.0
+    has_velocity_limits: true
+    max_velocity: 0.01
+    has_acceleration_limits: true
+    max_acceleration: 1.0
+    has_jerk_limits: true
+    max_jerk: 10.0
+    has_effort_limits: true
+    max_effort: 28.0
+  wrist_3_joint:
+    has_position_limits: true
+    min_position: -1.01
+    max_position: 1.0
+    has_velocity_limits: true
+    max_velocity: 0.01
+    has_acceleration_limits: true
+    max_acceleration: 1.0
+    has_jerk_limits: true
+    max_jerk: 10.0
+    has_effort_limits: true
+    max_effort: 28.0

@@ -22,93 +22,11 @@
 
 
   <xacro:wrist_sensor parent="tool0" child="ati_base_measurement"/> 
-  
-
-
-
-<!--joint name="merdose_joint" type="fixed">
-        <origin xyz="0 0 0.01" rpy="0 0 0"/>
-      <parent link="ati_base_measurement"/>
-      <child link="merdose"/>
-    </joint>
-
-
-    <link name="merdose">      
-      <inertial>
-        <mass value="0.255"/>
-        <origin xyz="0 0 0.0"  />
-        <xacro:cylinder_inertia_def radius="0.0177" length="0.2" mass="0.255"/>
-      </inertial>
-      <visual>
-        <origin xyz="0 0.0 0" rpy="0 0 0"/>
-        <geometry>
-          <cylinder radius="0.0177" length="0.2"/>
-        </geometry>
-         <material name="green">
-          <color rgba="0 .8 0 1"/>
-         </material>
-      </visual>
-      <collision>
-        <origin xyz="0 0 0.0" rpy="0 0 0"/>
-        <geometry>
-          <cylinder radius="0.0177" length="0.2"/>
-        </geometry>
-      </collision>
-    </link-->
-
-  <!--xacro:ft_sensor parent="tool0" name="wrist" type="ati_gamma">
-    <origin xyz="0 0 0.0165" rpy="0 0 0"/>    
-  </xacro:ft_sensor-->
-
-
-
-  <!--joint name="hand_attachment_joint" type="revolute">
-    <parent link="wrist_ati_gamma_measure" />
-    <child link = "hand_attachment" />
-    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
-    <limit lower="-0.00001" upper="0.00001" effort="100" velocity="100"/>
-    <axis xyz="0 0 1" />
-  </joint-->
-
-  <!--link name="box">
-    <inertial>
-      <mass value="50.0"/>
-      <inertia  ixx="1" ixy="0.00"  ixz="0.00" iyy="1" iyz="0.00" izz="1" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0.50" rpy="0 0 0"/>
-      <geometry>
-        <box size="1.0 1.0 1.0"/>
-      </geometry>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0.50" rpy="0 0 0"/>
-      <geometry>
-        <box size="1.0 1.0 1.0"/>
-      </geometry>
-    </collision>
-  </link>
-
-  <gazebo reference="box">
-    <static>true</static>
-  </gazebo-->
 
   <xacro:soft_hand parent="ati_base_measurement" name="soft_hand"  withAdaptiveTransmission="true" useMimicTag="false" left="false">
     <origin xyz="0 0 0.01" rpy="0 0 0"/>
   </xacro:soft_hand>
 
-
-
- <!-- Frame coincident with all-zeros TCP on UR controller -->    
-    <!--link name="hand_attachment">      
-
-      <collision>
-        <geometry>
-          <box size="0.01 0.01 0.01"/>
-        </geometry>
-        <origin rpy="0 0 0" xyz="0.01 0 0"/>
-      </collision>
-    </link-->
 
 
 </robot>

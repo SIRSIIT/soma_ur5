@@ -1,47 +1,35 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="limited" default="false"/>
-  <arg name="paused" default="true"/>
-  <arg name="gui" default="false"/>
+  <arg name="paused" default="false"/>
+  <arg name="gui" default="true"/>
+  <arg name="gazebo" default="true"/>
   
-  <!-- startup simulated world -->
-  <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" default="worlds/empty.world"/>
-    <arg name="paused" value="$(arg paused)"/>
-    <arg name="gui" value="$(arg gui)"/>
-  </include>
+  <group if="$(arg gazebo)">
+    <!-- startup simulated world -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+      <arg name="world_name" default="worlds/empty.world"/>
+      <arg name="paused" value="$(arg paused)"/>
+      <arg name="gui" value="$(arg gui)"/>
+      <arg name="use_sim_time" value="true"/>
+      <arg name="headless" value="true"/>
+      <arg name="debug" value="false"/>
+      <arg name="verbose" value="false"/>    
+    </include>
+    <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model robot -z 0.1 -J shoulder_pan_joint 0 -J shoulder_lift_joint 0.30 -J elbow_joint -0.25 -J wrist_1_joint -1.62 -J wrist_2_joint 0 -J wrist_3_joint 0" respawn="false" output="screen" />
+    <node pkg="rostopic" type="rostopic" name="fake_joint_calibration"
+          args="pub /calibrated std_msgs/Bool true" />   
+  </group>
+    
 
-  <!-- send robot urdf to param server -->
-  <!--include file="$(find ur_description)/launch/ur5_upload.launch">
-    <arg name="limited" value="$(arg limited)"/>
-  </include-->
-
-
-  <!-- push robot_description to factory and spawn robot in gazebo -->
-
-
-  <include file="$(find soma_ur5)/launch/ur5_control_gazebo.launch"/>
-  <node pkg="soma_ur5" type="gazebo_bridge" name="gazebo_bridge"/>
-
-
-<node pkg="rostopic" type="rostopic" name="fake_joint_calibration"
-        args="pub /calibrated std_msgs/Bool true" />
-
-
-
-  <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model robot -z 0.1 -J shoulder_pan_joint 0 -J shoulder_lift_joint 0.30 -J elbow_joint -0.25 -J wrist_1_joint -1.62 -J wrist_2_joint 0 -J wrist_3_joint 0" respawn="false" output="screen" />
-
-   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
-    <param name="publish_frequency" type="double" value="50.0" />
-    <param name="tf_prefix" type="string" value="" />
-  </node>
-  
-  <!--rosparam file="$(find ur_gazebo)/controller/arm_controller_ur5.yaml" command="load"/>
-  <node name="arm_controller_spawner" pkg="controller_manager" type="controller_manager" args="spawn arm_controller" respawn="false" output="screen"/>
-  <rosparam file="$(find ur_gazebo)/controller/joint_state_controller.yaml" command="load"/>
-  <node name="joint_state_controller_spawner" pkg="controller_manager" type="controller_manager" args="spawn joint_state_controller" respawn="false" output="screen"/>
-  <rosparam file="$(find ur_modern_driver)/config/ur5_controllers.yaml" command="load"/>
-  <node name="ros_control_controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
-    output="screen" args="joint_state_controller force_torque_sensor_controller vel_based_pos_traj_controller" /-->
-
+  <group ns="ur5">
+    <rosparam file="$(find soma_ur5)/config/ur5_gazebo_controllers.yaml" command="load"/>
+    <node name="controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="spawn vel_controller0 vel_controller1 vel_controller2 vel_controller3 vel_controller4 vel_controller5 joint_state_controller"/>
+    <node pkg="soma_ur5" type="gazebo_bridge" name="gazebo_bridge"/>
+  </group>
+  <group ns="soft_hand">
+    <!-- load controller configurations -->
+    <rosparam file="$(find soma_ur5)/config/soft_hand_controllers.yaml" command="load"/>    
+    <node name="controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false" output="screen"  args="spawn joint_position_controller joint_state_controller"/>
+  </group>
 </launch>

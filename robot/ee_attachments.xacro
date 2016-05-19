@@ -104,7 +104,7 @@
 </gazebo>
 
 
-  <transmission name="sensor_trans">
+  <!--transmission name="sensor_trans">
         <robotNamespace>ati</robotNamespace>
 
       <type>transmission_interface/SimpleTransmission</type>
@@ -115,7 +115,7 @@
       <actuator name="wrist_sensor_joint_motor">
         <mechanicalReduction>1</mechanicalReduction>
       </actuator>
-    </transmission>
+    </transmission-->
 
 	</xacro:macro>
 </robot>
