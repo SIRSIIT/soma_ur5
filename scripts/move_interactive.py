@@ -75,7 +75,11 @@ class UR5_Interactive:
         if feedback.event_type == InteractiveMarkerFeedback.BUTTON_CLICK:
             rospy.loginfo( s + ": button click" + mp + "." )
         elif feedback.event_type == InteractiveMarkerFeedback.MENU_SELECT:
-            rospy.loginfo( s + ": menu item " + str(feedback.menu_entry_id) + " clicked" + mp + "." )
+            rospy.loginfo( s + ": menu item " + str(feedback.menu_entry_id) + " clicked" + mp + "." )            
+            if feedback.menu_entry_id==1:
+                this.grasp_pub.publish(0.0)
+            else:
+                this.grasp_pub.publish(1.0)
         elif feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
             rospy.loginfo( s + ": pose changed")
     # TODO
@@ -91,10 +95,10 @@ class UR5_Interactive:
     #          << "\nframe: " << feedback.header.frame_id
     #          << " time: " << feedback.header.stamp.sec << "sec, "
     #          << feedback.header.stamp.nsec << " nsec" )
-        elif feedback.event_type == InteractiveMarkerFeedback.MOUSE_DOWN:
-            rospy.loginfo( s + ": mouse down" + mp + "." )
-        elif feedback.event_type == InteractiveMarkerFeedback.MOUSE_UP:
-            rospy.loginfo( s + ": mouse up" + mp + "." )
+    #    elif feedback.event_type == InteractiveMarkerFeedback.MOUSE_DOWN:
+    #        rospy.loginfo( s + ": mouse down" + mp + "." )
+    #    elif feedback.event_type == InteractiveMarkerFeedback.MOUSE_UP:
+    #        rospy.loginfo( s + ": mouse up" + mp + "." )
         this.server.applyChanges()
 
 
@@ -225,12 +229,32 @@ class UR5_Interactive:
                 control.orientation_mode = InteractiveMarkerControl.FIXED
             this.int_marker.controls.append(control)
 
+            # Try to add a button
+            #control = InteractiveMarkerControl()
+            #control.interaction_mode = InteractiveMarkerControl.MENU
+            #control.name = "menu"
+            #control.description="Options"
+            #this.int_marker.controls.append(copy.deepcopy(control))
+                       
+
+
         this.server.insert(this.int_marker, this.processFeedback)
+        this.menu_handler.apply( this.server, this.int_marker.name )
+
     def go(this):
         this.goal_pub = rospy.Publisher('goal_pose', geometry_msgs.msg.PoseStamped, queue_size=10)     
+        this.grasp_pub = rospy.Publisher('/soft_hand/joint_position_controller/command', std_msgs.msg.Float64, queue_size=10)     
+
         this.sub_once=None
         this.initial_pose=None  
         this.sub_once = rospy.Subscriber("ee_pose", geometry_msgs.msg.PoseStamped, this.cb_once)
+
+        this.menu_handler = MenuHandler()
+        this.menu_handler.insert( "Open Hand", callback=this.processFeedback )
+        this.menu_handler.insert( "Close Hand", callback=this.processFeedback )
+
+
+
         while this.initial_pose==None:
             rospy.sleep(0.1)
 

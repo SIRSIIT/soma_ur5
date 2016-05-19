@@ -51,7 +51,7 @@ public:
             ros::Rate(10).sleep();
         }
 
-        speed_command = nh->advertise<trajectory_msgs::JointTrajectory>("/ur_driver/joint_speed",5);
+        speed_command = nh->advertise<trajectory_msgs::JointTrajectory>("ur_driver/joint_speed",5);
         ROS_INFO("Loading parameters...");
         nh->getParam("limits/workspace", map_ws_lim);
         nh->getParam("limits/joints", map_j_lim);

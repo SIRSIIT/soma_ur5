@@ -27,7 +27,6 @@
 
       
 
-  <rosparam file="$(find soma_ur5)/config/ur5_settings.yaml" command="load"/>
   <param name="use_sim_time" value="false" unless="$(arg simulated)" />
   <param name="use_sim_time" value="true" if="$(arg simulated)" />
 
@@ -41,23 +40,30 @@
     <arg name="robot_ip" value="$(arg robot_ip)"/>
   </include>
   <include if="$(arg hand)" file="$(find qb_interface)/launch/qb_interface.launch"/>
-</group>
-  <node pkg="soma_ur5" type="ur5_controller" name="ur5_controller"/-->
-
-    <rosparam file="$(find soma_ur5)/config/ur5_gazebo_controllers.yaml" command="load"/>
-    <node name="controller_spawner_j" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="spawn joint_state_controller"/>
+</group-->
+  
 
 <group ns="ur5">
+    <rosparam file="$(find soma_ur5)/config/ur5_settings.yaml" command="load"/>
     <rosparam file="$(find soma_ur5)/config/ur5_gazebo_controllers.yaml" command="load"/>
-  		<node name="controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="spawn vel_controller0 vel_controller1 vel_controller2 vel_controller3 vel_controller4 vel_controller5"/>
+  		<node name="controller_spawner" pkg="controller_manager" type="controller_manager" respawn="false" output="screen" args="spawn vel_controller0 vel_controller1 vel_controller2 vel_controller3 vel_controller4 vel_controller5 joint_state_controller"/>
+    <node pkg="soma_ur5" type="ur5_controller" name="ur5_controller"/>
+        <node pkg="soma_ur5" type="gazebo_bridge" name="gazebo_bridge" if="$(arg simulated)"/>
+
 </group>
  
  <group ns="soft_hand">
  	    <!-- load controller configurations -->
-    <rosparam file="$(find adaptive_example)/config/controllers.yaml" command="load"/>
-
+    <rosparam file="$(find soma_ur5)/config/soft_hand_controllers.yaml" command="load"/>
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="true" output="screen"  args="joint_position_controller joint_state_controller"/>
 </group>
 
+
+ <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+            <param name="use_gui" value="$(arg gui)"/>
+            <!-- listens to each part -->
+            <rosparam param="source_list">[/ur5/joint_states,/soft_hand/joint_states]</rosparam>
+        </node>
 
     <param name="publish_frequency" value="100"/>
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"  />
@@ -73,26 +79,18 @@
 
         <!-- load Gazebo simulation environment -->
         <include file="$(find gazebo_ros)/launch/empty_world.launch">
-            <arg name="world_name" value="$(find adaptive_example)/worlds/simple_environment.world"/>
-            <arg name="paused" value="true"/>
+            <!--arg name="world_name" value="$(find adaptive_example)/worlds/simple_environment.world"/-->
+            <arg name="paused" value="false"/>
             <!-- when using the real/sim scenario in parallel, set "use_sim_time" to false -->
             <arg name="use_sim_time" value="true"/>
             <arg name="gui" value="true"/>
             <arg name="headless" value="true"/>
-            <arg name="debug" value="true"/>
-            <arg name="verbose" value="true"/>
+            <arg name="debug" value="false"/>
+            <arg name="verbose" value="false"/>
         </include>
          <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model soft_hand -x 0 -y 0 -z 1.0 -R 0 -P 0 -Y 0" respawn="false" output="screen"/>
     </group>
 
-    <!-- #### components -->
-    <group ns="soft_hand">
-      <!--param name="robot_description" command="$(find xacro)/xacro.py $(find adaptive_example)/robot/soft_hand_adaptive.urdf.xacro use_mimic_tag:=true"/-->
-
-      <!-- load the controllers in current namespace -->
-      <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="true" output="screen"  args="joint_trajectory_controller"/>
-
-    </group>
 
 
   </launch>

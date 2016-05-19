@@ -6,7 +6,7 @@ Haptic::Haptic(){
     initialize_haptic();
 
     pub_hap_pose=nh->advertise<geometry_msgs::PoseStamped>("haptic_pose",5);
-    pub_robot_com=nh->advertise<geometry_msgs::PoseStamped>("/goal_pose",5);
+    pub_robot_com=nh->advertise<geometry_msgs::PoseStamped>("goal_pose",5);
     pub_grip=nh->advertise<std_msgs::Float64>("grip_cmd",5);
     pub_pedal=nh->advertise<std_msgs::Bool>("hap_pedal",5);
 
