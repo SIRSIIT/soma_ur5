@@ -16,12 +16,15 @@ Other arguments are:
    * `com_interactive.launch`
    * `com_leap.launch`
 
-  
-  
 To offset the sensor do:
 
 * `rosservice call /Bias_sensor`
 
+Visualisation is done with either the `use_rviz` argument or
+* `rosrun rviz rviz`
+
+Further configurations (such as the joint speed) are made through:
+* `rqt`
 
 
 
