@@ -23,7 +23,7 @@
 
   <xacro:wrist_sensor parent="tool0" child="ati_base_measurement"/> 
 
-  <xacro:soft_hand parent="ati_base_measurement" name="soft_hand"  withAdaptiveTransmission="true" useMimicTag="false" left="false">
+  <xacro:soft_hand parent="ati_base_measurement" name="soft_hand"  withAdaptiveTransmission="true" useMimicTag="false" left="true">
     <origin xyz="0 0 0.01" rpy="0 0 0"/>
   </xacro:soft_hand>
 

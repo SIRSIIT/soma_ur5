@@ -3,7 +3,7 @@
   <arg name="robot_ip" default="192.168.1.102"/>
   <arg name="sensor_ip" default="192.168.1.1"/>
   <arg name="simulated" default="true"/>
-  <arg name="hand" default="false"/>
+  <arg name="hand" default="true"/>
   <arg name="use_rviz" default="false"/>
   <arg name="gz_gui" default="true"/>
 
@@ -25,6 +25,7 @@
         <arg name="robot_ip" value="$(arg robot_ip)"/>
       </include>
     </group>
+    <node name="ati_sensor" pkg="netft_rdt_driver" type="netft_node" args="--address $(arg sensor_ip) --frame_id ati_base" />
     <include if="$(arg hand)" file="$(find qb_interface)/launch/qb_interface.launch"/>
   </group>
     
@@ -41,7 +42,7 @@
     <rosparam param="source_list">[/ur5/joint_states,/soft_hand/joint_states]</rosparam>
   </node>
 
-  <param name="publish_frequency" value="100"/>
+  <param name="publish_frequency" value="200"/>
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"  />
 
   <group if="$(arg use_rviz)">

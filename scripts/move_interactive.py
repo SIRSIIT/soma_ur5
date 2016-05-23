@@ -37,6 +37,7 @@ from interactive_markers.menu_handler import *
 from visualization_msgs.msg import *
 from geometry_msgs.msg import Point, PoseStamped
 from tf.broadcaster import TransformBroadcaster
+from qb_interface.msg import handRef
 
 from random import random
 from math import sin
@@ -76,10 +77,13 @@ class UR5_Interactive:
             rospy.loginfo( s + ": button click" + mp + "." )
         elif feedback.event_type == InteractiveMarkerFeedback.MENU_SELECT:
             rospy.loginfo( s + ": menu item " + str(feedback.menu_entry_id) + " clicked" + mp + "." )            
+            hand_ref=handRef();            
             if feedback.menu_entry_id==1:
-                this.grasp_pub.publish(0.0)
+                hand_ref.closure.append(0.0)
+                this.grasp_pub.publish(hand_ref)
             else:
-                this.grasp_pub.publish(1.0)
+                hand_ref.closure.append(1.0)
+                this.grasp_pub.publish(hand_ref)
         elif feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
             rospy.loginfo( s + ": pose changed")
     # TODO
@@ -243,7 +247,8 @@ class UR5_Interactive:
 
     def go(this):
         this.goal_pub = rospy.Publisher('goal_pose', geometry_msgs.msg.PoseStamped, queue_size=10)     
-        this.grasp_pub = rospy.Publisher('/soft_hand/joint_position_controller/command', std_msgs.msg.Float64, queue_size=10)     
+        #this.grasp_pub = rospy.Publisher('/soft_hand/joint_position_controller/command', std_msgs.msg.Float64, queue_size=10)     
+        this.grasp_pub = rospy.Publisher('/qb_class/hand_ref', handRef, queue_size=10)     
 
         this.sub_once=None
         this.initial_pose=None  

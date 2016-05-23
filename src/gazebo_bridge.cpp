@@ -27,7 +27,43 @@ GazeboBridge::GazeboBridge(){
         ros::Rate(20).sleep();
     }
     jp_to_keep=cur_joints;
+
+    // Hand Bridge
+    sub_hand=nh->subscribe("/qb_class/hand_ref", 1000, &GazeboBridge::hand_callback,this);
+    pub_hand=nh->advertise<std_msgs::Float64>("/soft_hand/joint_position_controller/command",5);
+
+    // Sensor bridge
+    sub_sensor=nh->subscribe("/netft_data_sim", 1000, &GazeboBridge::sensor_callback,this);
+    pub_sensor=nh->advertise<geometry_msgs::WrenchStamped>("/netft_data",5);
+    bias_srv = nh->advertiseService("/Bias_sensor",&GazeboBridge::bias_srv_cb,this);
 }
+
+void GazeboBridge::hand_callback(const qb_interface::handRef::ConstPtr &msg){
+    std_msgs::Float64 hand_command;
+    hand_command.data=msg->closure.at(0);
+    pub_hand.publish(hand_command);
+}
+
+void GazeboBridge::sensor_callback(const geometry_msgs::WrenchStamped::ConstPtr &msg){
+    geometry_msgs::WrenchStamped out;
+    out=*msg;
+    last_sensor_reading=*msg;
+
+    out.wrench.force.x-=sensor_offset.force.x;
+    out.wrench.force.y-=sensor_offset.force.y;
+    out.wrench.force.z-=sensor_offset.force.z;
+
+    out.wrench.torque.x-=sensor_offset.torque.x;
+    out.wrench.torque.y-=sensor_offset.torque.y;
+    out.wrench.torque.z-=sensor_offset.torque.z;
+    pub_sensor.publish(out);
+}
+
+bool GazeboBridge::bias_srv_cb(std_srvs::Empty::Request &req,std_srvs::Empty::Response &rsp){
+    sensor_offset=last_sensor_reading.wrench;
+    return true;
+}
+
 
 void GazeboBridge::joint_callback(const sensor_msgs::JointState::ConstPtr &msg){
     if(!started){
@@ -56,7 +92,7 @@ void GazeboBridge::keep_position(){
     std_msgs::Float64 comm;
     double Kp=12.0;
     for (size_t i=0;i<6;i++){
-        ROS_WARN("J%d : %f - %f",i,jp_to_keep.position.at(i),cur_joints.position.at(i));
+        //ROS_WARN("J%d : %f - %f",i,jp_to_keep.position.at(i),cur_joints.position.at(i));
         comm.data=Kp*(jp_to_keep.position.at(i)-cur_joints.position.at(i));
         pub_vels.at(i).publish(comm);
     }
