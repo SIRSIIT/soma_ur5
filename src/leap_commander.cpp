@@ -13,7 +13,7 @@ public:
     LeapCom(){
         this->nh=new ros::NodeHandle();
 
-        pub_robot_com=nh->advertise<geometry_msgs::PoseStamped>("/goal_pose",5);
+        pub_robot_com=nh->advertise<geometry_msgs::PoseStamped>("goal_pose",5);
         pub_gripper=nh->advertise<qb_interface::handRef>("/qb_class/hand_ref",5);
         sub_pose= nh->subscribe("ee_pose", 1000, &LeapCom::robot_pose_callback, this);
         sub_leap= nh->subscribe("leapmotion/data", 1000, &LeapCom::leap_callback, this);
