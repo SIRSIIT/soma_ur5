@@ -12,8 +12,8 @@ get the forked versions of the packages in https://github.com/SIRSIIT :
 * `git clone https://github.com/CentroEPiaggio/ros_control.git && git checkout c34f02453d80cb70beed1da80b9c627175c43137` for some reason
 * `git clone git@github.com:SIRSIIT/gazebo_ros_pkgs.git` for some hackery
 
-* `mkdir ~/code && cd ~/code && git clone https://github.com/qbrobotics/handadmin.git && git clone https://github.com/qbrobotics/qbAPI.git`
-* `roscd soft_hand && cd ../hand-tools && rm -r handadmin qbAPI && ln -s ~/code/qbAPI && ln -s ~/code/handadmin`
+* `mkdir ~/code && cd ~/code && git clone https://github.com/qbrobotics/handadmin.git && git clone https://github.com/qbrobotics/qbAPI.git && cd qbAPI && git checkout 493b2591c5333d42ea5e7306caf203c42b56b292`
+* `roscd soft_hand && cd ../hand-tools && rm -r handadmin qbAPI &&  ln -s ~/code/qbAPI && ln -s ~/code/handadmin`
 
 * `catkin_make`
 
