@@ -2,7 +2,8 @@
 This package contains the stuff for the UR5 setup in SOMA project.
 
 get dependencies:
-sudo apt-get install ros-indigo-leap-motion
+* `sudo apt-get install ros-indigo-leap-motion`
+
 #add more dependencies
 get the forked versions of the packages in https://github.com/SIRSIIT :
 * `roscd && cd ../src`
@@ -10,6 +11,9 @@ get the forked versions of the packages in https://github.com/SIRSIIT :
 * `git clone https://github.com/CentroEPiaggio/pisa-iit-soft-hand.git && git checkout acc0f2106ba17b05687c41427560cd25b88ade49` for the soft hand to work :-/
 * `git clone https://github.com/CentroEPiaggio/ros_control.git && git checkout c34f02453d80cb70beed1da80b9c627175c43137` for some reason
 * `git clone git@github.com:SIRSIIT/gazebo_ros_pkgs.git` for some hackery
+
+* `mkdir ~/code && cd ~/code && git clone https://github.com/qbrobotics/handadmin.git && git clone https://github.com/qbrobotics/qbAPI.git`
+* `roscd soft_hand && cd ../hand-tools && rm -r handadmin qbAPI && ln -s ~/code/qbAPI && ln -s ~/code/handadmin`
 
 * `catkin_make`
 
