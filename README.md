@@ -14,6 +14,7 @@ get the forked versions of the packages in https://github.com/SIRSIIT :
 
 * `mkdir ~/code && cd ~/code && git clone https://github.com/qbrobotics/handadmin.git && git clone https://github.com/qbrobotics/qbAPI.git && cd qbAPI && git checkout 493b2591c5333d42ea5e7306caf203c42b56b292`
 * `roscd soft_hand && cd ../hand-tools && rm -r handadmin qbAPI &&  ln -s ~/code/qbAPI && ln -s ~/code/handadmin`
+* `cd ~/code/qbAPI/src && git checkout 72c0d68139060b95eeeb0f175ee44610f9ca2f71`
 
 * `catkin_make`
 
