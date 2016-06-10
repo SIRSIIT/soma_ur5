@@ -7,10 +7,10 @@ get dependencies:
 #add more dependencies
 get the forked versions of the packages in https://github.com/SIRSIIT :
 * `roscd && cd ../src`
-* `git clone https://github.com:SIRSIIT/universal_robot.git` for corrected kinematics
+* `git clone https://github.com/SIRSIIT/universal_robot.git` for corrected kinematics
 * `git clone https://github.com/SIRSIIT/pisa-iit-soft-hand.git` for the soft hand to work :-/
 * `git clone https://github.com/SIRSIIT/ros_control.git` for some reason
-* `git clone https://github.com:SIRSIIT/gazebo_ros_pkgs.git` for some hackery
+* `git clone https://github.com/SIRSIIT/gazebo_ros_pkgs.git` for some hackery
 
 * `mkdir ~/code && cd ~/code && git clone https://github.com/qbrobotics/handadmin.git && git clone https://github.com/qbrobotics/qbAPI.git && cd qbAPI && git checkout 493b2591c5333d42ea5e7306caf203c42b56b292`
 * `roscd soft_hand && cd ../hand-tools && rm -r handadmin qbAPI &&  ln -s ~/code/qbAPI && ln -s ~/code/handadmin`
