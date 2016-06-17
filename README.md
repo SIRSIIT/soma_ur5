@@ -2,7 +2,7 @@
 This package contains the stuff for the UR5 setup in SOMA project.
 
 get dependencies:
-* `sudo apt-get install ros-indigo-leap-motion`
+* `sudo apt-get install ros-indigo-leap-motion ros-indigo-bfl`
 
 #add more dependencies
 get the forked versions of the packages in https://github.com/SIRSIIT :
