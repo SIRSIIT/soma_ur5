@@ -13,10 +13,21 @@ UR5_Model::UR5_Model(){
     sub_joints = nh->subscribe("joint_states", 1000, &UR5_Model::joint_state_callback, this);
     pub_joint_torque = nh->advertise<std_msgs::Float64MultiArray>("kdl_torque",5);
 
+    pub_joint_kdl = nh->advertise<sensor_msgs::JointState>("kdl_joints",5);
 
 
+    kdl_parser::treeFromParam("/robot_description",robot_tree_w_hand);
     kdl_parser::treeFromParam("robot_description",robot_tree);
+
     robot_tree.getChain("base_link","ee_link",robot_chain);
+    robot_tree_w_hand.getChain("base_link","soft_hand_palm_link",robot_chain_w_hand);
+    KDL::SegmentMap segmap=robot_tree_w_hand.getSegments();
+
+    for(KDL::SegmentMap::iterator a=segmap.begin();a!=segmap.end();a++){
+
+        ROS_INFO("NAME: %s",a->second.segment.getName().c_str());
+    }
+
     Jac_solver=new KDL::ChainJntToJacSolver(robot_chain);
 
     /*
@@ -81,7 +92,7 @@ void UR5_Model::calculateJacobian(KDL::JntArray in){
 
 
 
-/*
+    /*
     KDL::ChainIkSolverVel_pinv ik_sol_v=KDL::ChainIkSolverVel_pinv(robot_chain);
     KDL::JntArrayVel vels=KDL::JntArrayVel(robot_chain.getNrOfJoints());
     vels.q=in;
@@ -126,7 +137,7 @@ Vector6d UR5_Model::getGravityTorques(Vector6d q){
     Vector6d tj;
 
     KDL::Frame cart_pos;
-    KDL::JntArray joint_pos = KDL::JntArray(robot_chain.getNrOfJoints());
+    KDL::JntArray joint_pos = KDL::JntArray(robot_chain_w_hand.getNrOfJoints());
     joint_pos(0)=0.0;
     joint_pos(1)=1.0*KDL::PI;
     joint_pos(2)=0.0;
@@ -136,11 +147,10 @@ Vector6d UR5_Model::getGravityTorques(Vector6d q){
 
     for (int i=0;i<robot_chain.getNrOfJoints();i++){
         joint_pos(i)=cur_joints.position.at(i);
+     //   ROS_INFO("%d %s %f",i,cur_joints.name.at(i).c_str(),cur_joints.position.at(i));
     }
 
     KDL::ChainFkSolverPos_recursive fksolv=KDL::ChainFkSolverPos_recursive(robot_chain);
-
-
     fksolv.JntToCart(joint_pos,cart_pos);
 
 
@@ -148,15 +158,19 @@ Vector6d UR5_Model::getGravityTorques(Vector6d q){
     cart_pos.Make4x4(EE_Mat);
     ROS_INFO("EE: %f %f %f",EE_Mat[3],EE_Mat[7],EE_Mat[11]);
 
-    KDL::RigidBodyInertia inertia=robot_chain.getSegment(2).getInertia();
-    KDL::Vector cog=inertia.getCOG();
-    ROS_INFO("cog: %f %f %f %f",inertia.getMass(),inertia.getCOG().x(),inertia.getCOG().y(),inertia.getCOG().z());
+
+
+    KDL::RigidBodyInertia inertia=robot_chain_w_hand.getSegment(8).getInertia();
+    ROS_INFO("cog: %s %f %f %f %f",robot_chain_w_hand.getSegment(8).getName().c_str(),inertia.getMass(),inertia.getCOG().x(),inertia.getCOG().y(),inertia.getCOG().z());
 
 
     KDL::Vector g(0,0,-9.8);
 
-    KDL::ChainDynParam DynPar= KDL::ChainDynParam(robot_chain,g);
-    KDL::JntArray grav_torq = KDL::JntArray(robot_chain.getNrOfJoints());
+    KDL::ChainDynParam DynPar= KDL::ChainDynParam(robot_chain_w_hand,g);
+    KDL::JntArray grav_torq = KDL::JntArray(robot_chain_w_hand.getNrOfJoints());
+    ROS_INFO("DOF: %d %d",robot_chain_w_hand.getNrOfJoints(),robot_chain.getNrOfJoints());
+
+
     DynPar.JntToGravity(joint_pos,grav_torq);
     ROS_INFO("JT_g: %f %f %f %f %f %f",grav_torq(0),grav_torq(1),grav_torq(2)
              ,grav_torq(3),grav_torq(4),grav_torq(5));
@@ -164,11 +178,14 @@ Vector6d UR5_Model::getGravityTorques(Vector6d q){
     sensor_msgs::JointState j_kdl;
     std_msgs::Float64MultiArray j_array;
     for(int i=0;i<robot_chain.getNrOfJoints();i++){
-        j_kdl.position.push_back(joint_pos(i));
+        //j_kdl.position.push_back(joint_pos(i));
+        j_kdl.position.push_back(cur_joints.effort.at(i));
+        j_kdl.velocity.push_back(cur_joints.velocity.at(i));
         j_kdl.effort.push_back(grav_torq(i));
         j_array.data.push_back(grav_torq(i)*3.6/50);
     }
     pub_joint_torque.publish(j_array);
+    pub_joint_kdl.publish(j_kdl);
 }
 
 void UR5_Model::run(){
@@ -177,7 +194,7 @@ void UR5_Model::run(){
     for (int i=0;i<robot_chain.getNrOfJoints();i++){
         joint_pos(i)=cur_joints.position.at(i);
     }
-    calculateJacobian(joint_pos);
+    //  calculateJacobian(joint_pos);
 }
 
 

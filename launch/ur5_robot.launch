@@ -6,6 +6,7 @@
   <arg name="hand" default="true"/>
   <arg name="use_rviz" default="false"/>
   <arg name="gz_gui" default="true"/>
+  <arg name="gz_debug" default="false"/>
 
   <param name="robot_description" command="$(find xacro)/xacro.py '$(find soma_ur5)/robot/ur5_soma.urdf.xacro'" if="$(arg hand)"/>
   <param name="robot_description" command="$(find xacro)/xacro.py '$(find ur_description)/urdf/ur5_joint_limited_robot.urdf.xacro'" unless="$(arg hand)"/>
@@ -16,6 +17,7 @@
   <group if="$(arg simulated)">
     <include file="$(find soma_ur5)/launch/ur5_gazebo.launch">
       <arg name="gui" value="$(arg gz_gui)"/>
+      <arg name="debug" value="$(arg gz_debug)"/>
     </include>
   </group>
 

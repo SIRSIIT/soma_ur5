@@ -23,14 +23,14 @@ public:
     void run();
 protected:
     ros::NodeHandle *nh;
-    KDL::Tree robot_tree;
-    KDL::Chain robot_chain;
+    KDL::Tree robot_tree,robot_tree_w_hand;
+    KDL::Chain robot_chain,robot_chain_w_hand;
     KDL::ChainJntToJacSolver *Jac_solver;
     KDL::RotationalInertia Cube_Rot_Inertia(double m,double w, double h, double d);
     std::array<int,6> jo;
     bool init,using_gazebo;
     ros::Subscriber sub_joints;
-    ros::Publisher pub_joint_torque;
+    ros::Publisher pub_joint_torque,pub_joint_kdl;
     sensor_msgs::JointState cur_joints;
 
 
