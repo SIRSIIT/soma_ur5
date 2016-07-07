@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="hand" default="true"/>
+  <arg name="use_rviz" default="true"/>
+  
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find soma_ur5)/robot/ur5_soma.urdf.xacro'" if="$(arg hand)"/>
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find ur_description)/urdf/ur5_joint_limited_robot.urdf.xacro'" unless="$(arg hand)"/>
+ 
+  <param name="use_sim_time" value="true"/>
+
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" respawn="true">
+    <rosparam param="source_list">[/ur5/joint_states,/soft_hand/joint_states]</rosparam>
+  </node>
+
+  <param name="publish_frequency" value="200"/>
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"  />
+
+  <group if="$(arg use_rviz)">
+      <node name="my_rviz" pkg="rviz" type="rviz" respawn="false" args="-d $(find soma_ur5)/config/soma_teleop.rviz" output="screen"/>
+  </group>
+
+  </launch>
