@@ -177,6 +177,7 @@ Vector6d UR5_Model::getGravityTorques(Vector6d q){
 
     sensor_msgs::JointState j_kdl;
     std_msgs::Float64MultiArray j_array;
+    j_kdl.header.stamp=ros::Time::now();
     for(int i=0;i<robot_chain.getNrOfJoints();i++){
         //j_kdl.position.push_back(joint_pos(i));
         j_kdl.position.push_back(cur_joints.effort.at(i));
