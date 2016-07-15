@@ -28,10 +28,11 @@ protected:
     KDL::ChainJntToJacSolver *Jac_solver;
     KDL::RotationalInertia Cube_Rot_Inertia(double m,double w, double h, double d);
     std::array<int,6> jo;
-    bool init,using_gazebo;
+    bool init,using_gazebo,using_hand;
     ros::Subscriber sub_joints;
     ros::Publisher pub_joint_torque,pub_joint_kdl;
     sensor_msgs::JointState cur_joints;
+    Eigen::Matrix<double,6,2> currents_to_torques;
 
 
     void joint_state_callback(const sensor_msgs::JointState::ConstPtr &msg);
