@@ -15,7 +15,10 @@ typedef Eigen::Matrix< double, 6, 1 > Vector6d;
 class Collisions{
 public:
     Collisions(){
+        ROS_INFO("0ah");
+
         initialize();
+        ROS_INFO("ag0");
 
     }
 
@@ -36,8 +39,12 @@ protected:
 
 
     void initialize(){
+        nh=new ros::NodeHandle();
+        ROS_INFO("02541");
+
         sub_torques= nh->subscribe("kdl_joints", 1000, &Collisions::joint_torque_callback, this);
         sub_ft_sensor= nh->subscribe("/netft_data", 1000, &Collisions::ft_sensor_callback, this);
+        ROS_INFO("afsas0");
 
     }
 
@@ -82,12 +89,19 @@ protected:
     }
     void end_effector(){
 
+        ROS_INFO("0");
+
         double q[6];
         Matrix6d Jac;
         Vector6d F_ee;
+        ROS_INFO("1");
+
         for (int i=0;i<6;i++) q[i]=cur_joints.position.at(i);
 
+        ROS_INFO("2");
         calculate_jac(q,Jac);
+        ROS_INFO("3");
+
         F_ee << cur_ft.wrench.force.x,
                 cur_ft.wrench.force.y,
                 cur_ft.wrench.force.z,
@@ -102,7 +116,10 @@ protected:
     }
 
     void check_collisions(){
+        ROS_INFO("04");
+
         end_effector();
+        ROS_INFO("30");
 
 
     }
@@ -111,8 +128,11 @@ protected:
 
 int main(int argc, char **argv){
     ros::init(argc, argv, "ur5_model");
+    ROS_INFO("0555");
+
     Collisions *col=new Collisions();
 
+    ROS_INFO("10");
 
     col->run();
 }
