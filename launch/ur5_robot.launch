@@ -27,7 +27,7 @@
         <arg name="robot_ip" value="$(arg robot_ip)"/>
       </include>
     </group>
-    <node name="ati_sensor" pkg="netft_rdt_driver" type="netft_node" args="--address $(arg sensor_ip) --frame_id ati_base" />
+    <node name="ati_sensor" pkg="netft_rdt_driver" type="netft_node" args="--address $(arg sensor_ip) --frame_id ati_base_measurement" />
     <include if="$(arg hand)" file="$(find qb_interface)/launch/qb_interface.launch"/>
   </group>
     

@@ -3,29 +3,40 @@
 UR5_Model::UR5_Model(){
 
 
-//    currents_to_torques << 1.0000 ,   0.0435,
-//                           0.0763 ,   0.5031,
-//                           0.1014 ,  -0.0076,
-//                           0.5753 ,  -0.1368,
-//                           0.1742 ,  -0.0147,
-//                           1.0000 ,  -0.0190;
+    //    currents_to_torques << 1.0000 ,   0.0435,
+    //                           0.0763 ,   0.5031,
+    //                           0.1014 ,  -0.0076,
+    //                           0.5753 ,  -0.1368,
+    //                           0.1742 ,  -0.0147,
+    //                           1.0000 ,  -0.0190;
 
 
-//    currents_to_torques << 1.0000  ,  0.0111,
-//                           0.0390  ,  1.1750,
-//                           0.0418  ,  0.6124,
-//                           0.0619  ,  0.0523,
-//                           0.1052  ,  0.0655,
-//                           0.0344  ,  0.0463;
+    //    currents_to_torques << 1.0000  ,  0.0111,
+    //                           0.0390  ,  1.1750,
+    //                           0.0418  ,  0.6124,
+    //                           0.0619  ,  0.0523,
+    //                           0.1052  ,  0.0655,
+    //                           0.0344  ,  0.0463;
 
-currents_to_torques <<    10.0000 ,   0.0000,
-                          13.9373 ,  -0.6318,
-                          12.5725 ,   0.9007,
-                           3.5255 ,   0.2833,
-                           0.6054 ,  -0.0445,
-                          -3.2312 ,   0.1146;
+    //currents_to_torques <<    10.0000 ,   0.0000,
+    //                          13.9373 ,  -0.6318,
+    //                          12.5725 ,   0.9007,
+    //                           3.5255 ,   0.2833,
+    //                           0.6054 ,  -0.0445,
+    //                          -3.2312 ,   0.1146;
 
 
+    currents_to_torques <<    13.2 ,   0.0000,
+            13.2, 0.0000,
+            13.2,   0.0000,
+            9.3,  0.0000,
+            9.3, 0.0000,
+            9.3 ,  0.0000;
+
+
+    for(int i=0;i<6;i++){
+        cur_filters.push_back(LP_Filter(100));
+    }
 
     this->nh=new ros::NodeHandle();
 
@@ -63,7 +74,7 @@ currents_to_torques <<    10.0000 ,   0.0000,
 
 
     for (int i=0;i<8;i++){
-      ROS_WARN("%s",robot_chain.getSegment(i).getName().c_str());
+        ROS_WARN("%s",robot_chain.getSegment(i).getName().c_str());
     }
 
 
@@ -78,7 +89,7 @@ currents_to_torques <<    10.0000 ,   0.0000,
     ROS_INFO("GO!");
     if(using_gazebo)   {
         if(!using_hand){
-           jo={2,1,0,3,4,5}; //'elbow_joint', 'shoulder_lift_joint', 'shoulder_pan_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint'
+            jo={2,1,0,3,4,5}; //'elbow_joint', 'shoulder_lift_joint', 'shoulder_pan_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint'
         }
         else{
             jo={2,1,0,4,5,6}; //name: ['elbow_joint', 'shoulder_lift_joint', 'shoulder_pan_joint', 'soft_hand_synergy_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
@@ -195,7 +206,7 @@ Vector6d UR5_Model::getGravityTorques(Vector6d q){
     for (int i=0;i<robot_chain.getNrOfJoints();i++){
         joint_pos(i)=cur_joints.position.at(i);
         joint_pos2(i)=cur_joints.position.at(i);
-     //   ROS_INFO("%d %s %f",i,cur_joints.name.at(i).c_str(),cur_joints.position.at(i));
+        //   ROS_INFO("%d %s %f",i,cur_joints.name.at(i).c_str(),cur_joints.position.at(i));
     }
 
     KDL::ChainFkSolverPos_recursive fksolv=KDL::ChainFkSolverPos_recursive(robot_chain);
@@ -205,8 +216,8 @@ Vector6d UR5_Model::getGravityTorques(Vector6d q){
     cart_pos.Make4x4(EE_Mat);
     ROS_INFO("EE: %f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f",
              EE_Mat[0],EE_Mat[1],EE_Mat[2],EE_Mat[3],
-             EE_Mat[4],EE_Mat[5],EE_Mat[6],EE_Mat[7],
-             EE_Mat[8],EE_Mat[9],EE_Mat[10],EE_Mat[11],
+            EE_Mat[4],EE_Mat[5],EE_Mat[6],EE_Mat[7],
+            EE_Mat[8],EE_Mat[9],EE_Mat[10],EE_Mat[11],
             EE_Mat[12],EE_Mat[13],EE_Mat[14],EE_Mat[15]);
 
     KDL::RigidBodyInertia inertia=robot_chain_w_hand.getSegment(8).getInertia();
@@ -215,7 +226,7 @@ Vector6d UR5_Model::getGravityTorques(Vector6d q){
 
     KDL::Vector g(0,0,-9.8);
 
-    KDL::ChainDynParam DynPar= KDL::ChainDynParam(robot_chain_w_hand,g);    
+    KDL::ChainDynParam DynPar= KDL::ChainDynParam(robot_chain_w_hand,g);
     KDL::JntArray grav_torq = KDL::JntArray(robot_chain_w_hand.getNrOfJoints());
 
     DynPar.JntToGravity(joint_pos,grav_torq);
@@ -245,10 +256,12 @@ Vector6d UR5_Model::getGravityTorques(Vector6d q){
     std_msgs::Float64MultiArray j_array;
     j_kdl.header.stamp=ros::Time::now();
     for(int i=0;i<robot_chain.getNrOfJoints();i++){
-        //j_kdl.position.push_back(joint_pos(i));
-        j_kdl.position.push_back(cur_joints.effort.at(i));
+        cur_filters.at(i).add_measurement(cur_joints.effort.at(i));
+        j_kdl.position.push_back(joint_pos(i));
+        //j_kdl.position.push_back(cur_filters.at(i).get_average());
         //j_kdl.velocity.push_back(cur_joints.velocity.at(i));
-        j_kdl.velocity.push_back(grav_torq2(i)-cur_joints.effort.at(i)*currents_to_torques(i,0)+currents_to_torques(i,1));
+        //j_kdl.velocity.push_back(grav_torq2(i)-cur_filters.at(i).get_average()*currents_to_torques(i,0)+currents_to_torques(i,1));
+        j_kdl.velocity.push_back(cur_filters.at(i).get_average()*currents_to_torques(i,0));
         j_kdl.effort.push_back(grav_torq2(i));
 
     }
@@ -269,12 +282,12 @@ void UR5_Model::run(){
 int main(int argc, char **argv){
     ros::init(argc, argv, "ur5_model");
     UR5_Model *ur5=new UR5_Model();
-    ros::Rate rate(10);
+    ros::Rate rate(20);
     Vector6d q;
     while(ros::ok()){
         ros::spinOnce();
         //   ur5->getGravityTorques(q);
-        ur5->run();
+     //   ur5->run();
         rate.sleep();
     }
 
