@@ -282,7 +282,7 @@ void UR5_Model::run(){
 int main(int argc, char **argv){
     ros::init(argc, argv, "ur5_model");
     UR5_Model *ur5=new UR5_Model();
-    ros::Rate rate(20);
+    ros::Rate rate(50);
     Vector6d q;
     while(ros::ok()){
         ros::spinOnce();

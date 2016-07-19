@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   tf2
+  tf2_eigen
   dynamic_reconfigure
   ur_modern_driver
   ur_kinematics
