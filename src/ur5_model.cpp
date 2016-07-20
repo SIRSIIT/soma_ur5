@@ -49,6 +49,7 @@ UR5_Model::UR5_Model(){
     pub_joint_torque = nh->advertise<std_msgs::Float64MultiArray>("kdl_torque",5);
 
     pub_joint_kdl = nh->advertise<sensor_msgs::JointState>("kdl_joints",5);
+    pub_kdl_pose = nh->advertise<geometry_msgs::PoseStamped>("kdl_pose",10);
 
 
     kdl_parser::treeFromParam("/robot_description",robot_tree_w_hand);
@@ -219,6 +220,18 @@ Vector6d UR5_Model::getGravityTorques(Vector6d q){
             EE_Mat[4],EE_Mat[5],EE_Mat[6],EE_Mat[7],
             EE_Mat[8],EE_Mat[9],EE_Mat[10],EE_Mat[11],
             EE_Mat[12],EE_Mat[13],EE_Mat[14],EE_Mat[15]);
+
+
+    geometry_msgs::PoseStamped kdl_pose;
+    kdl_pose.header.stamp=ros::Time::now();
+    kdl_pose.header.frame_id="base_link";
+    kdl_pose.pose.position.x=cart_pos.p.x();
+    kdl_pose.pose.position.y=cart_pos.p.y();
+    kdl_pose.pose.position.z=cart_pos.p.z();
+    cart_pos.M.GetQuaternion(kdl_pose.pose.orientation.x,kdl_pose.pose.orientation.y,kdl_pose.pose.orientation.z,kdl_pose.pose.orientation.w);
+
+
+    pub_kdl_pose.publish(kdl_pose);
 
     KDL::RigidBodyInertia inertia=robot_chain_w_hand.getSegment(8).getInertia();
     ROS_INFO("cog: %s %f %f %f %f",robot_chain_w_hand.getSegment(8).getName().c_str(),inertia.getMass(),inertia.getCOG().x(),inertia.getCOG().y(),inertia.getCOG().z());

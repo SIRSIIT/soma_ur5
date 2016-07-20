@@ -66,8 +66,9 @@ protected:
 
         ft_sensor_offset();
 
-        kdl_parser::treeFromParam("robot_description",robot_tree);
-        robot_tree.getChain("base_link","ee_link",robot_chain);
+        kdl_parser::treeFromParam("/robot_description",robot_tree);
+        robot_tree.getChain("base_link","ati_base",robot_chain);
+        ROS_WARN_STREAM("robot_chain:" << robot_chain.getSegment(6).getName().c_str());
         jnt_to_jac_solver_.reset(new KDL::ChainJntToJacSolver(robot_chain));
     }
 
@@ -90,14 +91,14 @@ protected:
         q_.resize(6);
         for(int i=0;i<6;i++) q_(i)=cur_q[i];
         jnt_to_jac_solver_->JntToJac(q_, J_);
-//        ROS_INFO("JACOBIAN KDL:");
-//        for(int i=0;i<6;i++) {
-//            for(int j=0;j<6;j++){
-//                J(i,j)=J_.data(i,j);
-//                printf("%f\t",J(i,j));
-//            }
-//            printf("\n");
-//        }
+        //ROS_INFO("JACOBIAN KDL:");
+        for(int i=0;i<6;i++) {
+            for(int j=0;j<6;j++){
+                J(i,j)=J_.data(i,j);
+          //      printf("%f\t",J(i,j));
+            }
+         //   printf("\n");
+        }
 
     }
 
@@ -267,11 +268,13 @@ protected:
         double q[6];
         Matrix6d Jac;
         Vector6d F_ee;
-        geometry_msgs::Wrench F_ext_ee;
+        geometry_msgs::WrenchStamped F_ext_ee;
 
         for (int i=0;i<6;i++) q[i]=cur_joints.position.at(i);
 
-        F_ext_ee=get_external_ee_force();
+        F_ext_ee.header.frame_id="ati_base_measurement";
+        F_ext_ee.header.stamp=ros::Time::now();
+        F_ext_ee.wrench=get_external_ee_force();
 
 
         geometry_msgs::WrenchStamped F_ext;
@@ -282,11 +285,11 @@ protected:
         tmp.header.stamp=ros::Time::now();
 
         if(tf_buffer.canTransform("base_link",tmp.header.frame_id,tmp.header.stamp,ros::Duration(0.5))){
-            tmp.vector=F_ext_ee.force;
+            tmp.vector=F_ext_ee.wrench.force;
             tmp2=tf_buffer.transform(tmp,"base_link");
             F_ext.wrench.force=tmp2.vector;
 
-            tmp.vector=F_ext_ee.torque;
+            tmp.vector=F_ext_ee.wrench.torque;
             tmp2=tf_buffer.transform(tmp,"base_link");
             F_ext.wrench.torque=tmp2.vector;
         }
@@ -297,17 +300,12 @@ protected:
         pub_F_ext.publish(F_ext);
 
         calculate_jac(q,Jac);
+        ROS_INFO_STREAM("Jac1:\n"<<Jac << "\n");
         calculate_jac2(q,Jac);
+        ROS_INFO_STREAM("Jac2:\n"<<Jac << "\n");
 
         fwd_kin(q);
         fwd_kin_T(q,4);
-
-//        F_ee << F_ext_ee.force.x,
-//                F_ext_ee.force.y,
-//                F_ext_ee.force.z,
-//                F_ext_ee.torque.x,
-//                F_ext_ee.torque.y,
-//                F_ext_ee.torque.z;
 
         F_ee << F_ext.wrench.force.x,
                 F_ext.wrench.force.y,

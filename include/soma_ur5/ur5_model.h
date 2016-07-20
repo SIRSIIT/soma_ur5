@@ -18,6 +18,7 @@
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <soma_ur5/lp_filter.h>
+#include <geometry_msgs/PoseStamped.h>
 
 typedef Eigen::Matrix< double, 6, 1 > Vector6d;
 
@@ -35,7 +36,7 @@ protected:
     std::array<int,6> jo;
     bool init,using_gazebo,using_hand;
     ros::Subscriber sub_joints;
-    ros::Publisher pub_joint_torque,pub_joint_kdl;
+    ros::Publisher pub_joint_torque,pub_joint_kdl,pub_kdl_pose;
     sensor_msgs::JointState cur_joints;
     Eigen::Matrix<double,6,2> currents_to_torques;
     std::vector<LP_Filter> cur_filters;
