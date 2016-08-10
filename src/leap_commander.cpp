@@ -32,13 +32,86 @@ public:
         if(key_space_on || key_zero_on){
 
             if(BASE_FRAME){
+
+                tf2::Transform hand_pose=utils::Pose2Transform(leap_pose.pose);
+                tf2::Transform initial_pose=utils::Pose2Transform(leap_pose_initial.pose);
+
+                tf2::Transform d_pose_T;
+                d_pose_T.setRotation(hand_pose.getRotation()*initial_pose.getRotation().inverse());
+                d_pose_T.setOrigin(hand_pose.getOrigin()-initial_pose.getOrigin());
+
+                com_pose.pose=utils::Transform2Pose(utils::Pose2Transform(ee_pose_initial.pose));
+
+                /*
+
                 h_pose=leap_pose;
                 d_pose=scale_pose(diff_pose(h_pose.pose),"h2r");
-                tf2::Quaternion q_diff((utils::Pose2Transform(d_pose)*utils::Pose2Transform(ee_pose_initial.pose)).getRotation() );
+                tf2::Transform d_pose_T=utils::Pose2Transform(d_pose);
+                tf2::Transform d_pose_local_frame=d_pose_T*utils::Pose2Transform(ee_pose_initial.pose);
+
+                ROS_ERROR("Pose_i:\n %f %f %f",leap_pose_initial.pose.position.x,leap_pose_initial.pose.position.y,leap_pose_initial.pose.position.z);
+                ROS_ERROR("Pose_h:\n %f %f %f",leap_pose.pose.position.x,leap_pose.pose.position.y,leap_pose.pose.position.z);
+
+
+
+                //d_pose_T=tf2::Transform(tf2::Quaternion(0.5,-0.5,-0.5,0.5))*d_pose_T; //Trick because god knows why, with these kinematics (z-out of end-effector) this doesn't work as well...
+
+                tf2::Quaternion q_diff(d_pose_T.getRotation() );
                 tf2::convert(q_diff, com_pose.pose.orientation);
-                com_pose.pose.position.x=ee_pose_initial.pose.position.x+d_pose.position.x;
-                com_pose.pose.position.y=ee_pose_initial.pose.position.y+d_pose.position.y;
-                com_pose.pose.position.z=ee_pose_initial.pose.position.z+d_pose.position.z;
+*/
+                //com_pose.pose.position.x=ee_pose_initial.pose.position.x+d_pose.position.x;
+                //com_pose.pose.position.y=ee_pose_initial.pose.position.y+d_pose.position.y;
+                //com_pose.pose.position.z=ee_pose_initial.pose.position.z+d_pose.position.z;
+                com_pose.pose.position.x=ee_pose_initial.pose.position.x+d_pose_T.getOrigin().x();
+                com_pose.pose.position.y=ee_pose_initial.pose.position.y+d_pose_T.getOrigin().y();
+                com_pose.pose.position.z=ee_pose_initial.pose.position.z+d_pose_T.getOrigin().z();
+
+
+                ROS_ERROR("initial:\n %f %f %f | %f %f %f %f",
+                          initial_pose.getOrigin().x(),
+                          initial_pose.getOrigin().y(),
+                          initial_pose.getOrigin().z(),
+                          initial_pose.getRotation().getW(),
+                          initial_pose.getRotation().getX(),
+                          initial_pose.getRotation().getY(),
+                          initial_pose.getRotation().getZ());
+
+
+                ROS_ERROR("hand:\n %f %f %f | %f %f %f %f",
+                          hand_pose.getOrigin().x(),
+                          hand_pose.getOrigin().y(),
+                          hand_pose.getOrigin().z(),
+                          hand_pose.getRotation().getW(),
+                          hand_pose.getRotation().getX(),
+                          hand_pose.getRotation().getY(),
+                          hand_pose.getRotation().getZ());
+
+                ROS_ERROR("d_pose_T:\n %f %f %f | %f %f %f %f",
+                          d_pose_T.getOrigin().x(),
+                          d_pose_T.getOrigin().y(),
+                          d_pose_T.getOrigin().z(),
+                          d_pose_T.getRotation().getW(),
+                          d_pose_T.getRotation().getX(),
+                          d_pose_T.getRotation().getY(),
+                          d_pose_T.getRotation().getZ());
+                ROS_ERROR("Pose_ee:\n %f %f %f | %f %f %f %f",
+                          ee_pose_initial.pose.position.x,
+                          ee_pose_initial.pose.position.y,
+                          ee_pose_initial.pose.position.z,
+                          ee_pose_initial.pose.orientation.w,
+                          ee_pose_initial.pose.orientation.x,
+                          ee_pose_initial.pose.orientation.y,
+                          ee_pose_initial.pose.orientation.z);
+                ROS_ERROR("Pose_ee_new:\n %f %f %f | %f %f %f %f",
+                          com_pose.pose.position.x,
+                          com_pose.pose.position.y,
+                          com_pose.pose.position.z,
+                          com_pose.pose.orientation.w,
+                          com_pose.pose.orientation.x,
+                          com_pose.pose.orientation.y,
+                          com_pose.pose.orientation.z);
+
+
 
             }
             else{
@@ -76,8 +149,8 @@ protected:
         //q.setRPY(msg->ypr.x*M_PI/180,0,0);
         //q.setRPY(0,-atan2(msg->normal.x,-msg->normal.y),0);
 
-        tf2::Vector3 c(-msg->normal.x,-msg->normal.y,-msg->normal.z);
-        tf2::Vector3 a(msg->direction.x,msg->direction.y,msg->direction.z);
+        tf2::Vector3 a(msg->normal.x,msg->normal.y,msg->normal.z);
+        tf2::Vector3 c(msg->direction.x,msg->direction.y,msg->direction.z);
         tf2::Vector3 b(c.cross(a));
         tf2::Matrix3x3 M(a.x(),b.x(),c.x(),
                          a.y(),b.y(),c.y(),
@@ -137,8 +210,8 @@ protected:
         hand_in_leapbase.header.stamp=trans.header.stamp;
         //tf_br.sendTransform(hand_in_leapbase);
 
-       leap_pose=transf2pose(hand_in_leapbase); //WORKING before
-     //   leap_pose=transf2pose(trans);  //Trial
+        leap_pose=transf2pose(hand_in_leapbase); //WORKING before
+        //   leap_pose=transf2pose(trans);  //Trial
         hand_state=*msg;
         opening=get_hand_opening(msg)*1.0;
         //     pub_robot_com.publish(leap_pose);
@@ -222,7 +295,7 @@ int main(int argc, char **argv){
     ros::init(argc, argv, "ur5_model");
 
     LeapCom *lc=new LeapCom();
-    ros::Rate rate(100);
+    ros::Rate rate(20);
     while(ros::ok()){
         ros::spinOnce();
         rate.sleep();
