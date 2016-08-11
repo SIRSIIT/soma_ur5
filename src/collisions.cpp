@@ -37,7 +37,7 @@ public:
 
 protected:
     ros::Subscriber sub_ft_sensor,sub_torques;
-    ros::Publisher pub_F_ext;
+    ros::Publisher pub_F_ext,pub_F_ext_body;
     ros::NodeHandle *nh;
     ros::ServiceServer srv_ft_bias;
     sensor_msgs::JointState cur_joints;
@@ -55,9 +55,10 @@ protected:
         sub_torques= nh->subscribe("kdl_joints", 1000, &Collisions::joint_torque_callback, this);
         sub_ft_sensor= nh->subscribe("/netft_data", 1000, &Collisions::ft_sensor_callback, this);
         pub_F_ext=nh->advertise<geometry_msgs::WrenchStamped>("external_force",10);
+        pub_F_ext_body=nh->advertise<geometry_msgs::WrenchStamped>("external_force_body",10);
         srv_ft_bias = nh->advertiseService("bias_ur5_weight",&Collisions::ft_bias_srv, this);
 
-        while (cur_joints.position.size()==0 || cur_ft.header.frame_id == ""){
+        while (cur_joints.effort.size()==0 || cur_ft.header.frame_id == ""){
             ros::spinOnce();
             ros::Rate(5).sleep();
         }
@@ -95,9 +96,9 @@ protected:
         for(int i=0;i<6;i++) {
             for(int j=0;j<6;j++){
                 J(i,j)=J_.data(i,j);
-          //      printf("%f\t",J(i,j));
+                //      printf("%f\t",J(i,j));
             }
-         //   printf("\n");
+            //   printf("\n");
         }
 
     }
@@ -120,13 +121,13 @@ protected:
             nc=fwd_kin(next_q);
             J.col(i) = 1/h*(nc-cur_c).col(0);
         }
-//        ROS_INFO("JACOBIAN OFW:");
-//        for(int i=0;i<6;i++) {
-//            for(int j=0;j<6;j++){
-//                printf("%f\t",J(i,j));
-//            }
-//            printf("\n");
-//        }
+        //        ROS_INFO("JACOBIAN OFW:");
+        //        for(int i=0;i<6;i++) {
+        //            for(int j=0;j<6;j++){
+        //                printf("%f\t",J(i,j));
+        //            }
+        //            printf("\n");
+        //        }
         //ROS_DEBUG("Determinant(J): %f",J.determinant());
     }
 
@@ -151,10 +152,11 @@ protected:
         double q[6];
         Eigen::Vector3d v_w(0,0,-9.8*weight);
         Eigen::Vector3d r_w(0,0,0.12);
-        for (int i=0;i<6;i++) q[i]=cur_joints.position.at(i);
+        for (int i=0;i<6;i++){
+            q[i]=cur_joints.position.at(i);
+        }
 
         Eigen::Affine3d t_e=tf2::transformToEigen(fwd_kin_T(q,10));
-
         Eigen::Vector3d f_ee=t_e.inverse().rotation()*v_w;
         Eigen::Vector3d t_ee=r_w.cross(f_ee);
 
@@ -166,7 +168,6 @@ protected:
         ee_weight.torque.x=t_ee[0];
         ee_weight.torque.y=t_ee[1];
         ee_weight.torque.z=t_ee[2];
-
         return ee_weight;
     }
 
@@ -263,7 +264,7 @@ protected:
         return fw;
 
     }
-    void end_effector(){
+    Vector6d end_effector(){
 
         double q[6];
         Matrix6d Jac;
@@ -300,9 +301,9 @@ protected:
         pub_F_ext.publish(F_ext);
 
         calculate_jac(q,Jac);
-        ROS_INFO_STREAM("Jac1:\n"<<Jac << "\n");
+        //     ROS_INFO_STREAM("Jac1:\n"<<Jac << "\n");
         calculate_jac2(q,Jac);
-        ROS_INFO_STREAM("Jac2:\n"<<Jac << "\n");
+        //     ROS_INFO_STREAM("Jac2:\n"<<Jac << "\n");
 
         fwd_kin(q);
         fwd_kin_T(q,4);
@@ -319,13 +320,30 @@ protected:
         Vector6d t_ee=Jac.transpose()*F_ee;
 
         ROS_INFO_STREAM(t_ee);
+        return t_ee;
 
+    }
+
+    geometry_msgs::Wrench check_body(){
+        Vector6d torques_from_ee,compensated_body_torques;
+        torques_from_ee=end_effector();
+        for (int i=0;i<6;i++) compensated_body_torques(i)=cur_joints.effort.at(i)-torques_from_ee(i);
+        ROS_INFO_STREAM("BODY:\n" << compensated_body_torques << "\n");
 
     }
 
     void check_collisions(){
 
-        end_effector();
+        geometry_msgs::WrenchStamped ee_force;
+        ee_force.wrench=get_external_ee_force();
+        ee_force.header.stamp=ros::Time::now();
+        ee_force.header.frame_id="ati_base_measurement";
+
+        geometry_msgs::WrenchStamped body_force;
+        body_force.wrench=check_body();
+        ee_force.header.stamp=ros::Time::now();
+        ee_force.header.frame_id="base_link";
+
 
     }
 

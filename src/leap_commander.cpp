@@ -120,13 +120,18 @@ public:
                 com_pose.pose=utils::Transform2Pose(utils::Pose2Transform(ee_pose_initial.pose)*utils::Pose2Transform(d_pose));
             }
 
-            com_pose.header.stamp=ros::Time::now();
-            com_pose.header.frame_id="base_link";
-            pub_robot_com.publish(com_pose);
+            if(hand_state.header.frame_id=="left"){
+                com_pose.header.stamp=ros::Time::now();
+                com_pose.header.frame_id="base_link";
+                pub_robot_com.publish(com_pose);
 
-            qb_interface::handRef opening_msg;
-            opening_msg.closure.push_back(opening);
-            pub_gripper.publish(opening_msg);
+                qb_interface::handRef opening_msg;
+                opening_msg.closure.push_back(opening);
+                pub_gripper.publish(opening_msg);
+            }
+            else{
+                ROS_ERROR("Right Hand detected...");
+            }
         }
     }
 
@@ -170,8 +175,10 @@ protected:
     }
     double get_hand_opening(leap_motion::leapros::ConstPtr msg){
         double opening;
-        tf2::Vector3 mf_d(msg->middle_distal.x,msg->middle_distal.y,msg->middle_distal.z);
-        tf2::Vector3 mf_t(msg->middle_tip.x,msg->middle_tip.y,msg->middle_tip.z);
+        //tf2::Vector3 mf_d(msg->middle_distal.x,msg->middle_distal.y,msg->middle_distal.z);
+        //tf2::Vector3 mf_t(msg->middle_tip.x,msg->middle_tip.y,msg->middle_tip.z);
+        tf2::Vector3 mf_d(msg->index_distal.x,msg->index_distal.y,msg->index_distal.z);
+        tf2::Vector3 mf_t(msg->index_tip.x,msg->index_tip.y,msg->index_tip.z);
         tf2::Vector3 h_d(msg->direction.x,msg->direction.y,msg->direction.z);
         opening=(mf_t-mf_d).angle(h_d)/M_PI;
         return opening;

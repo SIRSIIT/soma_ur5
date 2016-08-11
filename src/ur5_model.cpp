@@ -360,6 +360,7 @@ KDL::JntArray UR5_Model::getGravityTorques(KDL::JntArray joint_pos){
     j_kdl.header.stamp=ros::Time::now();
     for(int i=0;i<robot_chain.getNrOfJoints();i++){
         cur_filters.at(i).add_measurement(cur_joints.effort.at(i));
+        j_kdl.position.push_back(cur_joints.position.at(i));
         j_kdl.effort.push_back(grav_torq2(i)-cur_filters.at(i).get_average()*currents_to_torques(i,0));
     }
     pub_joint_kdl.publish(j_kdl);
