@@ -66,15 +66,16 @@ UR5_Model::UR5_Model(){
 
 
     double Hand_mass=0.620;
-    double ati_gamma_mass=0.255;
+    //double ati_gamma_mass=0.255;
+    double ati_gamma_mass=0.5;
     //    KDL::Vector Hand_cog(0.01,0,0.12);
-    KDL::Vector Hand_cog(0.0,0,0.0);
+    KDL::Vector Hand_cog(0.06,0,0.0);
 
     KDL::RigidBodyInertia Hand_inertia=KDL::RigidBodyInertia(Hand_mass+ati_gamma_mass,Hand_cog,Cube_Rot_Inertia(Hand_mass,0.08,0.12,0.2));
     robot_tree.addSegment(KDL::Segment("hand",KDL::Joint(),KDL::Frame(
                                            KDL::Rotation(0.0,0.0,1.0,
                                                          0,1,0,
-                                                         -1,0,0),KDL::Vector(0.1,0.0,0.0)),Hand_inertia),"ee_link");
+                                                         -1,0,0),KDL::Vector(0.05,0.0,0.0)),Hand_inertia),"ee_link");
 
 
     robot_tree.getChain("base_link","hand",robot_chain);
@@ -360,6 +361,7 @@ KDL::JntArray UR5_Model::getGravityTorques(KDL::JntArray joint_pos){
     j_kdl.header.stamp=ros::Time::now();
     for(int i=0;i<robot_chain.getNrOfJoints();i++){
         cur_filters.at(i).add_measurement(cur_joints.effort.at(i));
+        j_kdl.name.push_back(cur_joints.name.at(i));
         j_kdl.position.push_back(cur_joints.position.at(i));
         j_kdl.effort.push_back(grav_torq2(i)-cur_filters.at(i).get_average()*currents_to_torques(i,0));
     }

@@ -17,6 +17,7 @@
 #include <kdl/jacobian.hpp>
 #include <kdl/chainjnttojacsolver.hpp>
 
+
 typedef Eigen::Matrix< double, 6, 6 > Matrix6d;
 typedef Eigen::Matrix< double, 6, 1 > Vector6d;
 
@@ -148,10 +149,10 @@ protected:
 
 
     geometry_msgs::Wrench end_effector_weight(){
-        double weight=0.9;
+        double weight=1.2;
         double q[6];
         Eigen::Vector3d v_w(0,0,-9.8*weight);
-        Eigen::Vector3d r_w(0,0,0.12);
+        Eigen::Vector3d r_w(0,0,0.11);
         for (int i=0;i<6;i++){
             q[i]=cur_joints.position.at(i);
         }
@@ -193,40 +194,41 @@ protected:
     }
 
     geometry_msgs::TransformStamped fwd_kin_T(double q[6],int link_nr){
-        geometry_msgs::PointStamped p;
+        geometry_msgs::PoseStamped p;
+
 
         switch(link_nr){
         case 1:
             p.header.frame_id="base_link";
-            p.point.z=0.05;
+            p.pose.position.z=0.05;
             break;
         case 2:
             p.header.frame_id="shoulder_link";
-            p.point.z=0.05;
+            p.pose.position.z=0.30;
             break;
         case 3:
             p.header.frame_id="upper_arm_link";
-            p.point.z=0.30;
+            p.pose.position.z=0.25;
             break;
         case 4:
             p.header.frame_id="forearm_link";
-            p.point.z=0.25;
+            p.pose.position.z=0.05;
             break;
         case 5:
             p.header.frame_id="wrist_1_link";
-            p.point.y=0.05;
+            p.pose.position.y=0.05;
             break;
         case 6:
             p.header.frame_id="wrist_2_link";
-            p.point.z=0.05;
+            p.pose.position.z=0.05;
             break;
         case 7:
             p.header.frame_id="wrist_3_link";
-            p.point.y=0.05;
+            p.pose.position.y=0.0;
             break;
         case 10:
             p.header.frame_id="ati_base_measurement";
-            p.point.z=0.12;
+            p.pose.position.z=0.12;
         default:
             break;
         }
@@ -235,14 +237,21 @@ protected:
         p.header.stamp=ros::Time::now();
         try{
             if(tf_buffer.canTransform("base_link",p.header.frame_id,p.header.stamp,ros::Duration(0.5))){
+                base_to_frame=tf_buffer.lookupTransform("base_link",ros::Time::now(),p.header.frame_id,ros::Time::now(),"base_link",ros::Duration(0.5));
                 p=tf_buffer.transform(p,"base_link");
                 //base_to_frame=tf_buffer.lookupTransform("base_link",p.header.frame_id,p.header.stamp,ros::Duration(0.5));
-                base_to_frame=tf_buffer.lookupTransform("base_link",ros::Time::now(),"ati_base_measurement",ros::Time::now(),"base_link",ros::Duration(0.5));
+            }
+            else{
+                ROS_INFO("Cannot Transform");
             }
         }
         catch (tf2::TransformException &ex) {
             ROS_WARN("Could not transform: %s", ex.what());
         }
+        if(link_nr!=10){
+        ROS_INFO_STREAM("#Z " << p.pose.position.z);
+        }
+
         return base_to_frame;
     }
 
@@ -298,15 +307,12 @@ protected:
 
         F_ext.header.stamp=ros::Time::now();
         F_ext.header.frame_id="base_link";
-        pub_F_ext.publish(F_ext);
+    //    pub_F_ext.publish(F_ext);
 
-        calculate_jac(q,Jac);
+        //calculate_jac(q,Jac);
         //     ROS_INFO_STREAM("Jac1:\n"<<Jac << "\n");
         calculate_jac2(q,Jac);
         //     ROS_INFO_STREAM("Jac2:\n"<<Jac << "\n");
-
-        fwd_kin(q);
-        fwd_kin_T(q,4);
 
         F_ee << F_ext.wrench.force.x,
                 F_ext.wrench.force.y,
@@ -324,27 +330,75 @@ protected:
 
     }
 
-    geometry_msgs::Wrench check_body(){
+   bool check_body(geometry_msgs::WrenchStamped &body_force){
         Vector6d torques_from_ee,compensated_body_torques;
+        double q[6];
+        int i;
         torques_from_ee=end_effector();
-        for (int i=0;i<6;i++) compensated_body_torques(i)=cur_joints.effort.at(i)-torques_from_ee(i);
+        for (i=0;i<6;i++) {
+            compensated_body_torques(i)=cur_joints.effort.at(i)-torques_from_ee(i);
+            q[i]=cur_joints.position.at(i);
+        }
         ROS_INFO_STREAM("BODY:\n" << compensated_body_torques << "\n");
 
+        geometry_msgs::TransformStamped T;
+        tf2::Transform T_tf;
+        bool collided=false;
+        int cont_link=0;
+
+        for (i=cur_joints.effort.size();i>0;i--){
+            if(fabs(compensated_body_torques(i-1))>12.0){
+                collided=true;
+                cont_link=i;
+                break;
+            }
+        }
+
+
+        if(collided){
+            ROS_WARN("Collision Link= %d",i);
+            body_force.header.frame_id=cur_joints.name.at(i-1);
+            T=fwd_kin_T(q,cont_link);
+            tf2::convert(T.transform,T_tf);
+        }
+
+
+        ROS_INFO_STREAM("Transform \n" << tf2::transformToEigen(T).matrix());
+
+
+        if(cont_link>1){
+            body_force.wrench.torque.x=compensated_body_torques(cont_link-1);
+        }
+        body_force.wrench.torque.y=compensated_body_torques(0);
+        body_force.header.stamp=ros::Time::now();
+
+        return collided;
     }
 
     void check_collisions(){
 
-        geometry_msgs::WrenchStamped ee_force;
+        geometry_msgs::WrenchStamped ee_force,body_force,zero_force;
         ee_force.wrench=get_external_ee_force();
-        ee_force.header.stamp=ros::Time::now();
         ee_force.header.frame_id="ati_base_measurement";
-
-        geometry_msgs::WrenchStamped body_force;
-        body_force.wrench=check_body();
         ee_force.header.stamp=ros::Time::now();
-        ee_force.header.frame_id="base_link";
+
+        if((ee_force.wrench.force.x*ee_force.wrench.force.x+
+           ee_force.wrench.force.y*ee_force.wrench.force.y+
+           ee_force.wrench.force.z*ee_force.wrench.force.z)>5.0){
+            pub_F_ext.publish(ee_force);
+        }
+        else{
+            pub_F_ext.publish(zero_force);
+        }
 
 
+
+        if(check_body(body_force)){
+            pub_F_ext_body.publish(body_force);
+        }
+        else{
+            pub_F_ext_body.publish(zero_force);
+        }
     }
 
 };
