@@ -34,7 +34,8 @@
   <group ns="ur5">
       <rosparam file="$(find soma_ur5)/config/ur5_settings.yaml" command="load"/>   
       <!--node pkg="soma_ur5" type="ur5_controller" name="ur5_controller"/-->      
-      <!--node pkg="soma_ur5" type="ur5_model" name="ur5_model"/-->
+      <node pkg="soma_ur5" type="ur5_model" name="ur5_model"/>
+      <node pkg="soma_ur5" type="collisions" name="collisions"/>
   </group>
    
 

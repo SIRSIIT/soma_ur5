@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   ur_kinematics
   cmake_modules
   leap_motion
+  rosparam_handler
 )
 add_definitions(-std=c++11)
 
@@ -91,13 +92,21 @@ find_package(Eigen3 REQUIRED)
 ##   * uncomment the "generate_dynamic_reconfigure_options" section below
 ##     and list every .cfg file to be processed
 
+# generate_parameter_files(
+#   cfg/dyn_ur5_controller.cfg
+#   cfg/dyn_ur5_haptic.cfg
+#   cfg/dyn_ur5_hand.cfg
+#   cfg/dyn_ur5_model.params
+#   )
+
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
  generate_dynamic_reconfigure_options(
    cfg/dyn_ur5_controller.cfg
    cfg/dyn_ur5_haptic.cfg
    cfg/dyn_ur5_hand.cfg
-#   cfg/DynReconf2.cfg
+   cfg/dyn_ur5_model.params
  )
+
 
 ###################################
 ## catkin specific configuration ##
@@ -156,7 +165,7 @@ link_directories( ../../devel/lib lib)
  add_dependencies(gazebo_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(pisa_hand_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(ati_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
- add_dependencies(ur5_model ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+ add_dependencies(ur5_model ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_genparam)
  add_dependencies(leap_commander ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(haptic_band ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(collisions ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

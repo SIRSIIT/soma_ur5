@@ -22,12 +22,15 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <trajectory_msgs/JointTrajectory.h>
 #include <soma_ur5/utils.h>
+#include <soma_ur5/dyn_ur5_modelConfig.h>
+//#include <soma_ur5/dyn_ur5_modelParameters.h>
+#include <dynamic_reconfigure/server.h>
 
 typedef Eigen::Matrix< double, 6, 1 > Vector6d;
 
 class UR5_Model{
 public:
-    UR5_Model();
+    UR5_Model(ros::NodeHandle nh_in);
     void run();
 protected:
     ros::NodeHandle *nh;
@@ -59,10 +62,16 @@ protected:
 
     std::map<std::string,double> map_j_lim,map_ws_lim;
     std::string control_topic;
-    double max_angle,max_speed,speed_gain;
+    double max_angle,max_speed;
     trajectory_msgs::JointTrajectoryPoint prev_vel;
 
+//    soma_ur5::dyn_ur5_modelParameters *params_;
+    dynamic_reconfigure::Server<soma_ur5::dyn_ur5_modelConfig> config_server;
+    void reconfigureRequest(soma_ur5::dyn_ur5_modelConfig& config, uint32_t level);
 
+    struct Params{
+        double speed_gain;
+    } params;
 
 };
 #endif /* INCLUDE_SOMA_UR5_MODEL_H_ */

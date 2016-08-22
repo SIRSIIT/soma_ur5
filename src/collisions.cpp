@@ -15,8 +15,8 @@
 #include <kdl_conversions/kdl_msg.h>
 #include <kdl_parser/kdl_parser.hpp>
 #include <kdl/jacobian.hpp>
+#include <kdl/chainfksolverpos_recursive.hpp>
 #include <kdl/chainjnttojacsolver.hpp>
-
 
 typedef Eigen::Matrix< double, 6, 6 > Matrix6d;
 typedef Eigen::Matrix< double, 6, 1 > Vector6d;
@@ -28,7 +28,7 @@ public:
     }
 
     void run(){
-        ros::Rate rate(20);
+        ros::Rate rate(10);
         while(ros::ok()){
             ros::spinOnce();
             check_collisions();
@@ -48,10 +48,20 @@ protected:
     geometry_msgs::Wrench ft_offset;
     KDL::Chain robot_chain;
     KDL::Tree robot_tree;
+    boost::scoped_ptr<KDL::ChainFkSolverPos_recursive> fk_solver_;
     boost::scoped_ptr<KDL::ChainJntToJacSolver> jnt_to_jac_solver_;
 
     void initialize(){
         nh=new ros::NodeHandle();
+
+
+        kdl_parser::treeFromParam("/robot_description",robot_tree);
+        robot_tree.getChain("base_link","ati_base",robot_chain);
+        ROS_WARN_STREAM("robot_chain:" << robot_chain.getSegment(6).getName().c_str());
+        jnt_to_jac_solver_.reset(new KDL::ChainJntToJacSolver(robot_chain));
+        fk_solver_.reset(new KDL::ChainFkSolverPos_recursive(robot_chain));
+
+
 
         sub_torques= nh->subscribe("kdl_joints", 1000, &Collisions::joint_torque_callback, this);
         sub_ft_sensor= nh->subscribe("/netft_data", 1000, &Collisions::ft_sensor_callback, this);
@@ -68,10 +78,6 @@ protected:
 
         ft_sensor_offset();
 
-        kdl_parser::treeFromParam("/robot_description",robot_tree);
-        robot_tree.getChain("base_link","ati_base",robot_chain);
-        ROS_WARN_STREAM("robot_chain:" << robot_chain.getSegment(6).getName().c_str());
-        jnt_to_jac_solver_.reset(new KDL::ChainJntToJacSolver(robot_chain));
     }
 
     bool ft_bias_srv(std_srvs::Empty::Request &req,std_srvs::Empty::Response &rsp){
@@ -83,7 +89,7 @@ protected:
         cur_joints=*msg;
     }
     void ft_sensor_callback(const geometry_msgs::WrenchStamped::ConstPtr &msg){
-        cur_ft=*msg;
+        cur_ft=*msg;        
     }
 
     void calculate_jac2(double cur_q[6], Matrix6d &J){
@@ -93,13 +99,13 @@ protected:
         q_.resize(6);
         for(int i=0;i<6;i++) q_(i)=cur_q[i];
         jnt_to_jac_solver_->JntToJac(q_, J_);
-        //ROS_INFO("JACOBIAN KDL:");
+       // ROS_INFO("JACOBIAN KDL:");
         for(int i=0;i<6;i++) {
             for(int j=0;j<6;j++){
                 J(i,j)=J_.data(i,j);
-                //      printf("%f\t",J(i,j));
+        //              printf("%f\t",J(i,j));
             }
-            //   printf("\n");
+      //         printf("\n");
         }
 
     }
@@ -229,9 +235,29 @@ protected:
         case 10:
             p.header.frame_id="ati_base_measurement";
             p.pose.position.z=0.12;
+            break;
         default:
             break;
         }
+
+
+        if(link_nr==10){
+            KDL::JntArray qq=KDL::JntArray(6);
+            KDL::Frame F_ee_kdl;
+            geometry_msgs::TransformStamped transf_out;
+
+            for(int i=0;i<6;i++){
+                qq(i)=q[i];
+            }
+            fk_solver_->JntToCart(qq,F_ee_kdl);
+            tf::transformKDLToMsg(F_ee_kdl,transf_out.transform);
+            transf_out.child_frame_id="ati_base_measurement";
+            transf_out.header.frame_id="base_link";
+            transf_out.header.stamp=ros::Time::now();
+
+            return transf_out;
+        }
+
 
         geometry_msgs::TransformStamped base_to_frame;
         p.header.stamp=ros::Time::now();
@@ -286,6 +312,10 @@ protected:
         F_ext_ee.header.stamp=ros::Time::now();
         F_ext_ee.wrench=get_external_ee_force();
 
+
+        ROS_INFO("F_ext_ee: %f %f %f",F_ext_ee.wrench.force.x,
+                        F_ext_ee.wrench.force.y,
+                        F_ext_ee.wrench.force.z);
 
         geometry_msgs::WrenchStamped F_ext;
         geometry_msgs::Vector3Stamped tmp,tmp2;
@@ -347,7 +377,7 @@ protected:
         int cont_link=0;
 
         for (i=cur_joints.effort.size();i>0;i--){
-            if(fabs(compensated_body_torques(i-1))>12.0){
+            if(fabs(compensated_body_torques(i-1))>15.0){
                 collided=true;
                 cont_link=i;
                 break;
@@ -358,12 +388,12 @@ protected:
         if(collided){
             ROS_WARN("Collision Link= %d",i);
             body_force.header.frame_id=cur_joints.name.at(i-1);
-            T=fwd_kin_T(q,cont_link);
-            tf2::convert(T.transform,T_tf);
+      //      T=fwd_kin_T(q,cont_link);
+       //     tf2::convert(T.transform,T_tf);
         }
 
 
-        ROS_INFO_STREAM("Transform \n" << tf2::transformToEigen(T).matrix());
+     //   ROS_INFO_STREAM("Transform \n" << tf2::transformToEigen(T).matrix());
 
 
         if(cont_link>1){
@@ -384,7 +414,7 @@ protected:
 
         if((ee_force.wrench.force.x*ee_force.wrench.force.x+
            ee_force.wrench.force.y*ee_force.wrench.force.y+
-           ee_force.wrench.force.z*ee_force.wrench.force.z)>5.0){
+           ee_force.wrench.force.z*ee_force.wrench.force.z)>10.0){
             pub_F_ext.publish(ee_force);
         }
         else{

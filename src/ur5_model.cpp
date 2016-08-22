@@ -1,7 +1,16 @@
 #include <soma_ur5/ur5_model.h>
 
-UR5_Model::UR5_Model(){
+UR5_Model::UR5_Model(ros::NodeHandle nh_in)
+//    : params_{ros::NodeHandle("~")}
+{
+    dynamic_reconfigure::Server<soma_ur5::dyn_ur5_modelConfig>::CallbackType f;
+    f=boost::bind(&UR5_Model::reconfigureRequest, this, _1, _2);
+    config_server.setCallback(f);
 
+    //params_= new soma_ur5::dyn_ur5_modelParameters({ros::NodeHandle("~")});
+    //ROS_INFO("A");
+    //params_->fromParamServer();
+    //ROS_INFO("B");
 
     //    currents_to_torques << 1.0000 ,   0.0435,
     //                           0.0763 ,   0.5031,
@@ -38,7 +47,8 @@ UR5_Model::UR5_Model(){
         cur_filters.push_back(LP_Filter(100));
     }
 
-    this->nh=new ros::NodeHandle();
+    //this->nh=new ros::NodeHandle();
+    this->nh=&nh_in;
 
     init=false;    using_gazebo=false; using_hand=true;
 
@@ -116,10 +126,17 @@ UR5_Model::UR5_Model(){
     nh->getParam("limits/max_angle", max_angle);
     nh->getParam("limits/max_speed", max_speed);
     sub_goal_pose= nh->subscribe("goal_pose", 1000, &UR5_Model::goal_pose_callback, this);
-
-
-
 }
+
+void UR5_Model::reconfigureRequest(soma_ur5::dyn_ur5_modelConfig& config, uint32_t level) {
+    params.speed_gain=config.speed_gain;
+    ROS_ERROR("New speed: %f",params.speed_gain);
+}
+
+
+
+
+
 Vector6d UR5_Model::fwd_kin(double q[6]){
     double r,p,y;
     Vector6d fw;
@@ -186,7 +203,7 @@ trajectory_msgs::JointTrajectory UR5_Model::calcSpeeds(geometry_msgs::Pose cur_p
 
     deltaX=getDeltaX(cur_pose,goal_pose);
     Jacobian=getJacobian(cur_joints);
-/*
+    /*
     KDL::JntArray joints=KDL::JntArray(robot_chain.getNrOfJoints());
     for(int i=0;i<robot_chain.getNrOfJoints();i++){
         joints(i)=cur_joints.position.at(i);
@@ -210,7 +227,7 @@ trajectory_msgs::JointTrajectory UR5_Model::calcSpeeds(geometry_msgs::Pose cur_p
         p.velocities.push_back(deltaTh[i]*gain);
     }
 
-//    ROS_INFO_STREAM("Jacobian:\n" << Jacobian);
+    //    ROS_INFO_STREAM("Jacobian:\n" << Jacobian);
 
     for(int i=0;i<6;i++){
         ROS_INFO("deltaTh[%d]=%f",i,deltaTh[i]);
@@ -220,7 +237,7 @@ trajectory_msgs::JointTrajectory UR5_Model::calcSpeeds(geometry_msgs::Pose cur_p
 
     for(int i=0;i<6;i++){
         if(fabs(deltaX[i])>1.0){
-            ROS_ERROR("X %d %f",i,deltaX[i]);            
+            ROS_ERROR("X %d %f",i,deltaX[i]);
             p=prev_vel;
         }
     }
@@ -234,6 +251,25 @@ trajectory_msgs::JointTrajectory UR5_Model::calcSpeeds(geometry_msgs::Pose cur_p
 trajectory_msgs::JointTrajectory  UR5_Model::safety_enforcer( trajectory_msgs::JointTrajectory in){
 
     trajectory_msgs::JointTrajectory out=in;
+    //check joint limits:
+    Vector6d min_limits,max_limits;
+    min_limits << map_j_lim["j0_min"],map_j_lim["j1_min"],map_j_lim["j2_min"],map_j_lim["j3_min"],map_j_lim["j4_min"],map_j_lim["j5_min"];
+    max_limits << map_j_lim["j0_max"],map_j_lim["j1_max"],map_j_lim["j2_max"],map_j_lim["j3_max"],map_j_lim["j4_max"],map_j_lim["j5_max"];
+
+
+    for(int i=0;i<6;i++){
+        ROS_DEBUG("Lim(%d)=[%f,%f] - (%f)",i,min_limits(i),max_limits(i),cur_joints.position.at(i));
+
+        if(cur_joints.position.at(i)>max_limits(i) && out.points.at(0).velocities.at(i)>0){
+            out.points.at(0).velocities.at(i)=0;
+            ROS_ERROR("Out of limits [joint %d] > %f",i,max_limits(i));
+        }
+        if(cur_joints.position.at(i)<min_limits(i) && out.points.at(0).velocities.at(i)<0){
+            out.points.at(0).velocities.at(i)=0;
+            ROS_ERROR("Out of limits [joint %d] < %f",i,min_limits(i));
+        }
+    }
+
     for (int i=0;i<in.points.size();i++){
         for (int j=0;j<in.points.at(i).velocities.size();j++){
             out.points.at(i).velocities.at(j)=std::max(std::min(max_speed,
@@ -246,13 +282,12 @@ trajectory_msgs::JointTrajectory  UR5_Model::safety_enforcer( trajectory_msgs::J
 
 void UR5_Model::goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &msg){
     trajectory_msgs::JointTrajectory vels;
-    speed_gain=0.3;
     KDL::JntArray joints=KDL::JntArray(robot_chain.getNrOfJoints());
 
     for(int i=0;i<robot_chain.getNrOfJoints();i++){
         joints(i)=cur_joints.position.at(i);
     }
-    vels=calcSpeeds(getEEpose(joints),msg->pose,speed_gain);
+ //   vels=calcSpeeds(getEEpose(joints),msg->pose,params.speed_gain);
 
 
     KDL::Frame kdl_goal;
@@ -260,8 +295,13 @@ void UR5_Model::goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &m
     tf::poseMsgToKDL(msg->pose,kdl_goal);
     inv_solver->CartToJnt(joints,kdl_goal,target_joints);
 
+    for(int i=0;i<cur_joints.name.size();i++){
+        vels.joint_names.push_back(cur_joints.name.at(i));
+    }
+    vels.points.resize(1);
+    vels.points.at(0).velocities.resize(6);
     for(int i=0;i<robot_chain.getNrOfJoints();i++){
-        vels.points.at(0).velocities.at(i)=target_joints(i)-joints(i);
+        vels.points.at(0).velocities.at(i)=(target_joints(i)-joints(i))*params.speed_gain;
     }
 
     ROS_WARN("Joints: %f %f %f %f %f %f",target_joints(0),target_joints(1),target_joints(2),target_joints(3),target_joints(4),target_joints(5));
@@ -400,26 +440,27 @@ KDL::JntArray UR5_Model::getGravityTorques(KDL::JntArray joint_pos){
 }
 
 void UR5_Model::run(){
-    KDL::JntArray joint_pos = KDL::JntArray(robot_chain.getNrOfJoints());
+    // KDL::JntArray joint_pos = KDL::JntArray(robot_chain.getNrOfJoints());
 
-    for (int i=0;i<robot_chain.getNrOfJoints();i++){
-        joint_pos(i)=cur_joints.position.at(i);
-    }
+    //for (int i=0;i<robot_chain.getNrOfJoints();i++){
+    //    joint_pos(i)=cur_joints.position.at(i);
+    // }
     //  calculateJacobian(joint_pos);
+    ROS_INFO_STREAM("P: " << params.speed_gain);
 }
 
 
 int main(int argc, char **argv){
     ros::init(argc, argv, "ur5_model");
-    UR5_Model *ur5=new UR5_Model();
+    ros::NodeHandle nh;
     ros::Rate rate(50);
+    UR5_Model *ur5=new UR5_Model(nh);
     Vector6d q;
     while(ros::ok()){
         ros::spinOnce();
         //   ur5->getGravityTorques(q);
-        //   ur5->run();
+        ur5->run();
         rate.sleep();
     }
-
     return 0;
 }

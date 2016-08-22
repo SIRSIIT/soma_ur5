@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+PACKAGE = "soma_ur5"
+
+#from rosparam_handler.parameter_generator_catkin import *
+from dynamic_reconfigure.parameter_generator_catkin import *
+
+gen = ParameterGenerator()
+#       Name                    Type      Reconfiguration level             Description  Default    Min   Max
+#gen.add("speed_gain", paramtype="double",description="Gain on speed", default=0.1,  min=0.0, max=2.0, configurable=True)
+gen.add("speed_gain", double_t, 0,   "Gain on speed",        0.1, 0.0, 2.0)
+
+
+exit(gen.generate(PACKAGE, "soma_ur5_model", "dyn_ur5_model"))
