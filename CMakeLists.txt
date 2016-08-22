@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   leap_motion
   rosparam_handler
+  actionlib_msgs
 )
 add_definitions(-std=c++11)
 
@@ -66,17 +67,20 @@ find_package(Eigen3 REQUIRED)
 # )
 
 ## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
+ add_action_files(
+   DIRECTORY action
+   FILES SOMAFramework.action
 #   Action1.action
 #   Action2.action
-# )
+ )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+ generate_messages(
+   DEPENDENCIES
+   std_msgs  # Or other packages containing msgs
+   geometry_msgs
+   actionlib_msgs
+ )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -120,7 +124,7 @@ find_package(Eigen3 REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES soma_ur5
-  CATKIN_DEPENDS roscpp rospy tf2 ur_modern_driver
+  CATKIN_DEPENDS roscpp rospy tf2 ur_modern_driver actionlib_msgs
   DEPENDS system_lib
 )
 
@@ -155,6 +159,7 @@ link_directories( ../../devel/lib lib)
  add_executable(leap_commander src/leap_commander.cpp)
  add_executable(haptic_band src/haptic_band.cpp)
  add_executable(collisions src/collisions.cpp)
+ add_executable(soma_framework src/soma_framework.cpp)
 
 
 ## Add cmake target dependencies of the executable
@@ -169,6 +174,7 @@ link_directories( ../../devel/lib lib)
  add_dependencies(leap_commander ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(haptic_band ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(collisions ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(soma_framework ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
  target_link_libraries(controller    ${catkin_LIBRARIES}   ur5_kin )
@@ -181,6 +187,7 @@ link_directories( ../../devel/lib lib)
  target_link_libraries(leap_commander   ${catkin_LIBRARIES} )
  target_link_libraries(haptic_band ${catkin_LIBRARIES} )
  target_link_libraries(collisions ${catkin_LIBRARIES} ur5_kin )
+target_link_libraries(soma_framework ${catkin_LIBRARIES} ur5_kin )
 
 
 #############
