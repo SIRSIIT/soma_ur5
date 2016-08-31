@@ -1,0 +1,19 @@
+#goal definition
+int32 order
+std_msgs/Header header
+geometry_msgs/Pose pose
+geometry_msgs/Wrench wrench
+geometry_msgs/Twist twist
+float64 max_duration
+---
+#result definition
+int32[] sequence
+bool success
+---
+#feedback
+std_msgs/Header header
+geometry_msgs/Pose cur_pose
+geometry_msgs/Wrench cur_wrench
+int32[] state
+
+

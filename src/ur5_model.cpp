@@ -294,6 +294,10 @@ void UR5_Model::goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &m
     KDL::JntArray target_joints;
     tf::poseMsgToKDL(msg->pose,kdl_goal);
     inv_solver->CartToJnt(joints,kdl_goal,target_joints);
+    KDL::Jacobian Jac;
+    Jac_solver->JntToJac(joints,Jac);
+
+
 
     for(int i=0;i<cur_joints.name.size();i++){
         vels.joint_names.push_back(cur_joints.name.at(i));
