@@ -44,7 +44,7 @@ UR5_Model::UR5_Model(ros::NodeHandle nh_in)
 
 
     for(int i=0;i<6;i++){
-        cur_filters.push_back(LP_Filter(100));
+        cur_filters.push_back(LP_Filter(20));
     }
 
     //this->nh=new ros::NodeHandle();
@@ -407,6 +407,7 @@ KDL::JntArray UR5_Model::getGravityTorques(KDL::JntArray joint_pos){
         cur_filters.at(i).add_measurement(cur_joints.effort.at(i));
         j_kdl.name.push_back(cur_joints.name.at(i));
         j_kdl.position.push_back(cur_joints.position.at(i));
+        j_kdl.velocity.push_back(grav_torq2(i));
         j_kdl.effort.push_back(grav_torq2(i)-cur_filters.at(i).get_average()*currents_to_torques(i,0));
     }
     pub_joint_kdl.publish(j_kdl);

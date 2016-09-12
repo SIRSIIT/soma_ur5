@@ -1,0 +1,7 @@
+<launch>
+  <group ns="ur5">
+  
+
+  </group>
+  <node name="camera" pkg="libuvc_camera" type="camera_node"  />
+</launch>

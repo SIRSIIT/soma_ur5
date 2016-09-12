@@ -38,7 +38,7 @@ public:
 
 protected:
     ros::Subscriber sub_ft_sensor,sub_torques;
-    ros::Publisher pub_F_ext,pub_F_ext_body;
+    ros::Publisher pub_F_ext,pub_F_ext_body,pub_debug;
     ros::NodeHandle *nh;
     ros::ServiceServer srv_ft_bias;
     sensor_msgs::JointState cur_joints;
@@ -67,6 +67,7 @@ protected:
         sub_ft_sensor= nh->subscribe("/netft_data", 1000, &Collisions::ft_sensor_callback, this);
         pub_F_ext=nh->advertise<geometry_msgs::WrenchStamped>("external_force",10);
         pub_F_ext_body=nh->advertise<geometry_msgs::WrenchStamped>("external_force_body",10);
+        pub_debug=nh->advertise<sensor_msgs::JointState>("comp_torques",10);
         srv_ft_bias = nh->advertiseService("bias_ur5_weight",&Collisions::ft_bias_srv, this);
 
         while (cur_joints.effort.size()==0 || cur_ft.header.frame_id == ""){
@@ -384,6 +385,18 @@ protected:
             }
         }
 
+        //To plot the torques from ee, total and external
+        sensor_msgs::JointState j_debug;
+        for (i=0;i<6;i++) {
+            j_debug.name.push_back(cur_joints.name.at(i));
+            j_debug.position.push_back(compensated_body_torques(i));
+            j_debug.velocity.push_back(torques_from_ee(i));
+            j_debug.effort.push_back(cur_joints.effort.at(i));
+        }
+        j_debug.header.stamp=ros::Time::now();
+        pub_debug.publish(j_debug);
+
+
 
         if(collided){
             ROS_WARN("Collision Link= %d",i);
@@ -397,8 +410,9 @@ protected:
 
 
         if(cont_link>1){
-            body_force.wrench.torque.x=compensated_body_torques(cont_link-1);
-        }
+            if(compensated_body_torques(1)>compensated_body_torques(2)) body_force.wrench.torque.x=compensated_body_torques(1);
+            else body_force.wrench.torque.x=compensated_body_torques(2);
+        }        
         body_force.wrench.torque.y=compensated_body_torques(0);
         body_force.header.stamp=ros::Time::now();
 
@@ -411,7 +425,7 @@ protected:
         ee_force.wrench=get_external_ee_force();
         ee_force.header.frame_id="ati_base_measurement";
         ee_force.header.stamp=ros::Time::now();
-
+/*
         if((ee_force.wrench.force.x*ee_force.wrench.force.x+
            ee_force.wrench.force.y*ee_force.wrench.force.y+
            ee_force.wrench.force.z*ee_force.wrench.force.z)>10.0){
@@ -420,16 +434,18 @@ protected:
         else{
             pub_F_ext.publish(zero_force);
         }
-
-
+*/
+        pub_F_ext.publish(ee_force);
 
         if(check_body(body_force)){
             pub_F_ext_body.publish(body_force);
         }
         else{
-            pub_F_ext_body.publish(zero_force);
-        }
+            //zero_force
+            pub_F_ext_body.publish(body_force);
+        }        
     }
+
 
 };
 
