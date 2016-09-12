@@ -79,13 +79,13 @@ UR5_Model::UR5_Model(ros::NodeHandle nh_in)
     //double ati_gamma_mass=0.255;
     double ati_gamma_mass=0.5;
     //    KDL::Vector Hand_cog(0.01,0,0.12);
-    KDL::Vector Hand_cog(0.06,0,0.0);
+    KDL::Vector Hand_cog(-0.06,0.3,0.0);
 
     KDL::RigidBodyInertia Hand_inertia=KDL::RigidBodyInertia(Hand_mass+ati_gamma_mass,Hand_cog,Cube_Rot_Inertia(Hand_mass,0.08,0.12,0.2));
     robot_tree.addSegment(KDL::Segment("hand",KDL::Joint(),KDL::Frame(
                                            KDL::Rotation(0.0,0.0,1.0,
                                                          0,1,0,
-                                                         -1,0,0),KDL::Vector(0.05,0.0,0.0)),Hand_inertia),"ee_link");
+                                                         -1,0,0),KDL::Vector(0.17,-0.03,0.0)),Hand_inertia),"ee_link");
 
 
     robot_tree.getChain("base_link","hand",robot_chain);
