@@ -14,7 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   ur_kinematics
   cmake_modules
   leap_motion
-  rosparam_handler
   actionlib_msgs
 )
 add_definitions(-std=c++11)
