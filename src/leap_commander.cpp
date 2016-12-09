@@ -118,6 +118,8 @@ public:
                 h_pose=leap_pose;
                 d_pose=scale_pose(diff_pose(h_pose.pose),"h2r");
                 com_pose.pose=utils::Transform2Pose(utils::Pose2Transform(ee_pose_initial.pose)*utils::Pose2Transform(d_pose));
+  //              com_pose.pose.position.y = ee_pose_initial.pose.position.y; //Francesco?
+                //com_pose.pose.orientation = ee_pose_initial.pose.orientation;
             }
 
             if(hand_state.header.frame_id=="left"){
@@ -155,7 +157,9 @@ protected:
         //q.setRPY(0,-atan2(msg->normal.x,-msg->normal.y),0);
 
         tf2::Vector3 a(msg->normal.x,msg->normal.y,msg->normal.z);
+        //tf2::Vector3 a(cos(msg->ypr.z * M_PI / 180.0),sin(msg->ypr.z  * M_PI / 180.0),0.0);
         tf2::Vector3 c(msg->direction.x,msg->direction.y,msg->direction.z);
+        //tf2::Vector3 c(0.0,0.0,1.0);
         tf2::Vector3 b(c.cross(a));
         tf2::Matrix3x3 M(a.x(),b.x(),c.x(),
                          a.y(),b.y(),c.y(),
@@ -181,6 +185,8 @@ protected:
         tf2::Vector3 mf_t(msg->index_tip.x,msg->index_tip.y,msg->index_tip.z);
         tf2::Vector3 h_d(msg->direction.x,msg->direction.y,msg->direction.z);
         opening=(mf_t-mf_d).angle(h_d)/M_PI;
+        if (opening < 0.6) opening = 0.0;
+        if (opening > 0.6) opening = 1.0;
         return opening;
     }
 
@@ -200,6 +206,7 @@ protected:
     void leap_callback(const leap_motion::leapros::ConstPtr &msg){
         geometry_msgs::TransformStamped trans,hand_in_leapbase,leap_base;
         tf2::Transform hand_in_leapbase_tf,trans_tf,leap_base_tf;
+        //*leap_motion::leapros msg = msg2;
 
         trans=get_hand_transform(msg);
         tf_br.sendTransform(trans);

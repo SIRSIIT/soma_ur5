@@ -59,57 +59,57 @@ class SOMA_ICRA:
         ret_q.w=q.w;
         return ret_q;
             
-    def quat2transform(self,q):
-        xx2 = 2 * q.x * q.x
-        yy2 = 2 * q.y * q.y
-        zz2 = 2 * q.z * q.z
-        xy2 = 2 * q.x * q.y
-        wz2 = 2 * q.w * q.z
-        zx2 = 2 * q.z * q.x
-        wy2 = 2 * q.w * q.y
-        yz2 = 2 * q.y * q.z
-        wx2 = 2 * q.w * q.x
+    # def quat2transform(self,q):
+    #     xx2 = 2 * q.x * q.x
+    #     yy2 = 2 * q.y * q.y
+    #     zz2 = 2 * q.z * q.z
+    #     xy2 = 2 * q.x * q.y
+    #     wz2 = 2 * q.w * q.z
+    #     zx2 = 2 * q.z * q.x
+    #     wy2 = 2 * q.w * q.y
+    #     yz2 = 2 * q.y * q.z
+    #     wx2 = 2 * q.w * q.x
         
-        rmat = numpy.empty((3, 3), float)
-        rmat[0,0] = 1. - yy2 - zz2
-        rmat[0,1] = xy2 - wz2
-        rmat[0,2] = zx2 + wy2
-        rmat[1,0] = xy2 + wz2
-        rmat[1,1] = 1. - xx2 - zz2
-        rmat[1,2] = yz2 - wx2
-        rmat[2,0] = zx2 - wy2
-        rmat[2,1] = yz2 + wx2
-        rmat[2,2] = 1. - xx2 - yy2
+    #     rmat = numpy.empty((3, 3), float)
+    #     rmat[0,0] = 1. - yy2 - zz2
+    #     rmat[0,1] = xy2 - wz2
+    #     rmat[0,2] = zx2 + wy2
+    #     rmat[1,0] = xy2 + wz2
+    #     rmat[1,1] = 1. - xx2 - zz2
+    #     rmat[1,2] = yz2 - wx2
+    #     rmat[2,0] = zx2 - wy2
+    #     rmat[2,1] = yz2 + wx2
+    #     rmat[2,2] = 1. - xx2 - yy2
         
-        return rmat
+    #     return rmat
     
-    def mat2quat(self,M):
-        # Qyx refers to the contribution of the y input vector component to
-        # the x output vector component.  Qyx is therefore the same as
-        # M[0,1].  The notation is from the Wikipedia article.
-        Qxx, Qyx, Qzx, Qxy, Qyy, Qzy, Qxz, Qyz, Qzz = M.flat
-        # Fill only lower half of symmetric matrix
-        K = numpy.array([
-            [Qxx - Qyy - Qzz, 0,               0,               0              ],
-            [Qyx + Qxy,       Qyy - Qxx - Qzz, 0,               0              ],
-            [Qzx + Qxz,       Qzy + Qyz,       Qzz - Qxx - Qyy, 0              ],
-            [Qyz - Qzy,       Qzx - Qxz,       Qxy - Qyx,       Qxx + Qyy + Qzz]]
-            ) / 3.0
-        # Use Hermitian eigenvectors, values for speed
-        vals, vecs = numpy.linalg.eigh(K)
-        # Select largest eigenvector, reorder to w,x,y,z quaternion
-        q = vecs[[3, 0, 1, 2], numpy.argmax(vals)]
-        # Prefer quaternion with positive w
-        # (q * -1 corresponds to same rotation as q)
-        if q[0] < 0:
-            q *= -1
+    # def mat2quat(self,M):
+    #     # Qyx refers to the contribution of the y input vector component to
+    #     # the x output vector component.  Qyx is therefore the same as
+    #     # M[0,1].  The notation is from the Wikipedia article.
+    #     Qxx, Qyx, Qzx, Qxy, Qyy, Qzy, Qxz, Qyz, Qzz = M.flat
+    #     # Fill only lower half of symmetric matrix
+    #     K = numpy.array([
+    #         [Qxx - Qyy - Qzz, 0,               0,               0              ],
+    #         [Qyx + Qxy,       Qyy - Qxx - Qzz, 0,               0              ],
+    #         [Qzx + Qxz,       Qzy + Qyz,       Qzz - Qxx - Qyy, 0              ],
+    #         [Qyz - Qzy,       Qzx - Qxz,       Qxy - Qyx,       Qxx + Qyy + Qzz]]
+    #         ) / 3.0
+    #     # Use Hermitian eigenvectors, values for speed
+    #     vals, vecs = numpy.linalg.eigh(K)
+    #     # Select largest eigenvector, reorder to w,x,y,z quaternion
+    #     q = vecs[[3, 0, 1, 2], numpy.argmax(vals)]
+    #     # Prefer quaternion with positive w
+    #     # (q * -1 corresponds to same rotation as q)
+    #     if q[0] < 0:
+    #         q *= -1
             
-        qq=Quaternion();
-        qq.w=q[0];
-        qq.x=q[1];
-        qq.y=q[2];
-        qq.z=q[3];
-        return qq
+    #     qq=Quaternion();
+    #     qq.w=q[0];
+    #     qq.x=q[1];
+    #     qq.y=q[2];
+    #     qq.z=q[3];
+    #     return qq
     
     
 
@@ -166,40 +166,40 @@ class SOMA_ICRA:
         return True
          
         
-    def rotate(self,pose,g_rot):
-        starting_pose=copy.deepcopy(pose);
-        com_pose=copy.deepcopy(starting_pose);
-        print(numpy.rad2deg(self.quat_angle(self.cur_pose.pose.orientation,starting_pose.pose.orientation)))
+    # def rotate(self,pose,g_rot):
+    #     starting_pose=copy.deepcopy(pose);
+    #     com_pose=copy.deepcopy(starting_pose);
+    #     print(numpy.rad2deg(self.quat_angle(self.cur_pose.pose.orientation,starting_pose.pose.orientation)))
 
-        tot_rot=numpy.identity(3);
-        tot_quat=Quaternion();
-        tot_quat.w=1.0;
-        if g_rot<0:
-            self.inc_quat.z=-0.0043633;
-        while(self.quat_angle(self.cur_pose.pose.orientation,starting_pose.pose.orientation) < numpy.fabs(g_rot)):
-            rospy.loginfo("%f %f",self.quat_angle(self.cur_pose.pose.orientation,starting_pose.pose.orientation),numpy.fabs(g_rot));
-            self.diff(self.cur_pose.pose.orientation,starting_pose.pose.orientation)
-            com_pose.pose.orientation=self.quaternion_multiply(self.inc_quat,com_pose.pose.orientation);
-            tot_quat=self.quaternion_multiply(self.inc_quat,tot_quat);
-            #com_or=self.quat2transform(com_pose.pose.orientation);
-            #com_or=self.inc_rot*com_or;
-            #com_pose.pose.orientation=self.mat2quat(com_or)
-            #tot_rot=self.inc_rot*tot_rot;
-            #print(tot_rot)
-            self.goal_pub.publish(com_pose)
-            self.rate.sleep();
+    #     tot_rot=numpy.identity(3);
+    #     tot_quat=Quaternion();
+    #     tot_quat.w=1.0;
+    #     if g_rot<0:
+    #         self.inc_quat.z=-0.0043633;
+    #     while(self.quat_angle(self.cur_pose.pose.orientation,starting_pose.pose.orientation) < numpy.fabs(g_rot)):
+    #         rospy.loginfo("%f %f",self.quat_angle(self.cur_pose.pose.orientation,starting_pose.pose.orientation),numpy.fabs(g_rot));
+    #         self.diff(self.cur_pose.pose.orientation,starting_pose.pose.orientation)
+    #         com_pose.pose.orientation=self.quaternion_multiply(self.inc_quat,com_pose.pose.orientation);
+    #         tot_quat=self.quaternion_multiply(self.inc_quat,tot_quat);
+    #         #com_or=self.quat2transform(com_pose.pose.orientation);
+    #         #com_or=self.inc_rot*com_or;
+    #         #com_pose.pose.orientation=self.mat2quat(com_or)
+    #         #tot_rot=self.inc_rot*tot_rot;
+    #         #print(tot_rot)
+    #         self.goal_pub.publish(com_pose)
+    #         self.rate.sleep();
 
-        ca=numpy.cos(g_rot);
-        sa=numpy.sin(g_rot);
-        m_r=numpy.matrix([[ca,sa,0],[-sa,ca,0],[0,0,1]]);
-        print(m_r)
+    #     ca=numpy.cos(g_rot);
+    #     sa=numpy.sin(g_rot);
+    #     m_r=numpy.matrix([[ca,sa,0],[-sa,ca,0],[0,0,1]]);
+    #     print(m_r)
         
-        com_pose.pose.orientation=self.mat2quat(m_r*self.quat2transform(com_pose.pose.orientation));
-        while(self.quat_angle(self.cur_pose.pose.orientation,starting_pose.pose.orientation) < numpy.fabs(g_rot) or self.diff(self.cur_pose.pose.position,starting_pose.pose.position) > 0.01):
-            self.goal_pub.publish(com_pose)
-            self.rate.sleep();
+    #     com_pose.pose.orientation=self.mat2quat(m_r*self.quat2transform(com_pose.pose.orientation));
+    #     while(self.quat_angle(self.cur_pose.pose.orientation,starting_pose.pose.orientation) < numpy.fabs(g_rot) or self.diff(self.cur_pose.pose.position,starting_pose.pose.position) > 0.01):
+    #         self.goal_pub.publish(com_pose)
+    #         self.rate.sleep();
         
-        return True
+    #     return True
         
     def grasp(self,perc):
         clos=handRef();
@@ -220,10 +220,15 @@ class SOMA_ICRA:
         
         poses=PoseStamped();
         poses.header.frame_id='base_link';
-        poses.pose.position.x=-0.1;
-        poses.pose.position.y=-0.575;
+        poses.pose.position.x=-0.01;
+        poses.pose.position.y=-0.675;
         poses.pose.position.z=0.2;
-        
+                    
+
+        # Values for the orientation: 
+        # 0, pi/16, pi/8, 3pi/16, pi/4, 5pi/16, 6pi/16, 7pi/16, pi/2, 9pi/16, 10pi/16, 11pi/16, 12pi/16
+        # 0, 11.25, 22.5, 33.75, 45, 56.25, 67.5, 78.75, 90, 101.25, 112.5, 123.75, 135
+
         orientation=numpy.matrix([[self.sq2, 0, -self.sq2, 0], \
         [0.693519922661074,   0.137949689641472,  -0.693519922661074,   0.137949689641472],\
         [0.653281482438188,   0.270598050073098,  -0.653281482438188,   0.270598050073098],\
@@ -243,6 +248,16 @@ class SOMA_ICRA:
          [0.205262263761179,   0.676659000587177 , -0.205262263761179 ,  0.676659000587177],\
          [0.069308584599546,   0.703701868763192 , -0.069308584599546 ,  0.703701868763192]]);
 
+        orientation=numpy.matrix([[self.sq2, 0, -self.sq2, 0], \
+        [0.693519922661074,   0.137949689641472,  -0.693519922661074,   0.137949689641472],\
+        [0.653281482438188,   0.270598050073098,  -0.653281482438188,   0.270598050073098],\
+        [0.587937801209679,   0.392847479193551,  -0.587937801209679,   0.392847479193551],\
+        [0.500000000000000,   0.500000000000000,  -0.500000000000000,   0.500000000000000],\
+        [0.392847479193551,   0.587937801209679,  -0.392847479193551,   0.587937801209679],\
+        [0.270598050073099,   0.653281482438188,  -0.270598050073099,   0.653281482438188],\
+        [0.137949689641472,   0.693519922661074,  -0.137949689641472,   0.693519922661074],\
+        [0.000000000000000,   0.707106781186547,  -0.000000000000000,   0.707106781186547]]);
+
         for j in range(0,6):
             for i in range(0,1):
                 print("go_down");
@@ -261,7 +276,7 @@ class SOMA_ICRA:
                     rospy.loginfo("%d %d",i,j)
                     raw_input("Press Enter to continue...")
 
-                if self.grasp(0.8):
+                if self.grasp(0.9):
                     rospy.loginfo("Grasped")
                     raw_input("Press Enter to continue...")
 

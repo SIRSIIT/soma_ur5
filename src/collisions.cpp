@@ -17,9 +17,16 @@
 #include <kdl/jacobian.hpp>
 #include <kdl/chainfksolverpos_recursive.hpp>
 #include <kdl/chainjnttojacsolver.hpp>
+#include <soma_ur5/lp_filter.h>
 
 typedef Eigen::Matrix< double, 6, 6 > Matrix6d;
 typedef Eigen::Matrix< double, 6, 1 > Vector6d;
+
+double signum_c(double in){
+    if(in>0.02) return 1;
+    else if(in<-0.02) return -1;
+    else return 0;
+}
 
 class Collisions{
 public:
@@ -50,6 +57,7 @@ protected:
     KDL::Tree robot_tree;
     boost::scoped_ptr<KDL::ChainFkSolverPos_recursive> fk_solver_;
     boost::scoped_ptr<KDL::ChainJntToJacSolver> jnt_to_jac_solver_;
+    std::vector<LP_Filter> comp_filters;
 
     void initialize(){
         nh=new ros::NodeHandle();
@@ -78,6 +86,9 @@ protected:
         listener=new tf2_ros::TransformListener(tf_buffer);
 
         ft_sensor_offset();
+        for(int i=0;i<6;i++){
+            comp_filters.push_back(LP_Filter(5));
+        }
 
     }
 
@@ -361,6 +372,11 @@ protected:
 
     }
 
+    double compensate_velocity(int joint_nr, double cur_velocity){
+        Vector6d vel_comp; vel_comp << 7.8,11,8,2,2,2;
+        return (2*vel_comp(joint_nr))/(1+exp(-50*cur_velocity))-vel_comp(joint_nr);
+                    //(signum_c(cur_velocity)*vel_comp(i))
+    }
    bool check_body(geometry_msgs::WrenchStamped &body_force){
         Vector6d torques_from_ee,compensated_body_torques;
         double q[6];
@@ -387,11 +403,15 @@ protected:
 
         //To plot the torques from ee, total and external
         sensor_msgs::JointState j_debug;
+        Vector6d vel_compensation;
         for (i=0;i<6;i++) {
             j_debug.name.push_back(cur_joints.name.at(i));
             j_debug.position.push_back(compensated_body_torques(i));
             j_debug.velocity.push_back(torques_from_ee(i));
-            j_debug.effort.push_back(cur_joints.effort.at(i));
+            comp_filters.at(i).add_measurement(compensated_body_torques(i)+compensate_velocity(i,cur_joints.velocity.at(i)));
+            j_debug.effort.push_back(comp_filters.at(i).get_average());
+
+            //j_debug.effort.push_back(cur_joints.effort.at(i));
         }
         j_debug.header.stamp=ros::Time::now();
         pub_debug.publish(j_debug);

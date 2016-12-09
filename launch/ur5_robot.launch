@@ -2,7 +2,7 @@
 <launch>
   <arg name="robot_ip" default="192.168.1.102"/>
   <arg name="sensor_ip" default="192.168.1.1"/>
-  <arg name="simulated" default="true"/>
+  <arg name="simulated" default="false"/>
   <arg name="hand" default="true"/>
   <arg name="use_rviz" default="false"/>
   <arg name="gz_gui" default="true"/>
@@ -38,6 +38,8 @@
       <node pkg="soma_ur5" type="collisions" name="collisions"/>
   </group>
    
+   <!-- Haptic band -->
+  <node pkg="soma_ur5" type="haptic_band" name="haptic_band" output="screen"/>
 
 
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">

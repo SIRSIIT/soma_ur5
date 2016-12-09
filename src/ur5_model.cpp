@@ -289,10 +289,12 @@ void UR5_Model::goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &m
     }
  //   vels=calcSpeeds(getEEpose(joints),msg->pose,params.speed_gain);
 
+    geometry_msgs::PoseStamped robotposition = *msg;
+    //robotposition.pose.position.y = -0.815056156678;
 
     KDL::Frame kdl_goal;
     KDL::JntArray target_joints;
-    tf::poseMsgToKDL(msg->pose,kdl_goal);
+    tf::poseMsgToKDL(robotposition.pose,kdl_goal);
     inv_solver->CartToJnt(joints,kdl_goal,target_joints);
     KDL::Jacobian Jac;
     Jac_solver->JntToJac(joints,Jac);
@@ -407,7 +409,8 @@ KDL::JntArray UR5_Model::getGravityTorques(KDL::JntArray joint_pos){
         cur_filters.at(i).add_measurement(cur_joints.effort.at(i));
         j_kdl.name.push_back(cur_joints.name.at(i));
         j_kdl.position.push_back(cur_joints.position.at(i));
-        j_kdl.velocity.push_back(grav_torq2(i));
+        //j_kdl.velocity.push_back(grav_torq2(i));
+        j_kdl.velocity.push_back(cur_joints.velocity.at(i));
         j_kdl.effort.push_back(grav_torq2(i)-cur_filters.at(i).get_average()*currents_to_torques(i,0));
     }
     pub_joint_kdl.publish(j_kdl);

@@ -157,7 +157,7 @@ link_directories( ../../devel/lib lib)
  add_executable(ati_bridge src/ati_bridge.cpp)
  add_executable(ur5_model src/ur5_model.cpp)
  add_executable(leap_commander src/leap_commander.cpp)
- add_executable(haptic_band src/haptic_band.cpp)
+ add_executable(haptic_band src/haptic_band_v2.cpp)
  add_executable(collisions src/collisions.cpp)
  add_executable(soma_framework src/soma_framework.cpp)
 
