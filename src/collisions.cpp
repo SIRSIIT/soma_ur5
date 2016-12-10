@@ -378,15 +378,17 @@ protected:
                     //(signum_c(cur_velocity)*vel_comp(i))
     }
    bool check_body(geometry_msgs::WrenchStamped &body_force){
-        Vector6d torques_from_ee,compensated_body_torques;
+        Vector6d torques_from_ee,compensated_body_torques,compensated_also_velocities;
         double q[6];
         int i;
         torques_from_ee=end_effector();
         for (i=0;i<6;i++) {
             compensated_body_torques(i)=cur_joints.effort.at(i)-torques_from_ee(i);
+            comp_filters.at(i).add_measurement(compensated_body_torques(i)+compensate_velocity(i,cur_joints.velocity.at(i)));
+            compensated_also_velocities(i)=comp_filters.at(i).get_average();
             q[i]=cur_joints.position.at(i);
         }
-        ROS_INFO_STREAM("BODY:\n" << compensated_body_torques << "\n");
+        ROS_INFO_STREAM("BODY:\n" << compensated_also_velocities << "\n");
 
         geometry_msgs::TransformStamped T;
         tf2::Transform T_tf;
@@ -394,23 +396,22 @@ protected:
         int cont_link=0;
 
         for (i=cur_joints.effort.size();i>0;i--){
-            if(fabs(compensated_body_torques(i-1))>15.0){
+            if(fabs(compensated_also_velocities(i-1))>15.0){
                 collided=true;
                 cont_link=i;
                 break;
             }
         }
 
+
+
         //To plot the torques from ee, total and external
-        sensor_msgs::JointState j_debug;
-        Vector6d vel_compensation;
+        sensor_msgs::JointState j_debug;        
         for (i=0;i<6;i++) {
             j_debug.name.push_back(cur_joints.name.at(i));
             j_debug.position.push_back(compensated_body_torques(i));
             j_debug.velocity.push_back(torques_from_ee(i));
-            comp_filters.at(i).add_measurement(compensated_body_torques(i)+compensate_velocity(i,cur_joints.velocity.at(i)));
-            j_debug.effort.push_back(comp_filters.at(i).get_average());
-
+            j_debug.effort.push_back(compensated_also_velocities(i));
             //j_debug.effort.push_back(cur_joints.effort.at(i));
         }
         j_debug.header.stamp=ros::Time::now();
@@ -430,10 +431,10 @@ protected:
 
 
         if(cont_link>1){
-            if(compensated_body_torques(1)>compensated_body_torques(2)) body_force.wrench.torque.x=compensated_body_torques(1);
-            else body_force.wrench.torque.x=compensated_body_torques(2);
+            if(compensated_also_velocities(1)>compensated_also_velocities(2)) body_force.wrench.torque.x=compensated_also_velocities(1);
+            else body_force.wrench.torque.x=compensated_also_velocities(2);
         }        
-        body_force.wrench.torque.y=compensated_body_torques(0);
+        body_force.wrench.torque.y=compensated_also_velocities(0);
         body_force.header.stamp=ros::Time::now();
 
         return collided;
