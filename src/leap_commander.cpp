@@ -186,7 +186,7 @@ protected:
         tf2::Vector3 h_d(msg->direction.x,msg->direction.y,msg->direction.z);
         opening=(mf_t-mf_d).angle(h_d)/M_PI;
         if (opening < 0.6) opening = 0.0;
-        if (opening > 0.6) opening = 1.0;
+        if (opening > 0.6) opening = 0.8;
         return opening;
     }
 
