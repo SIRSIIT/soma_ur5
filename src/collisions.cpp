@@ -373,7 +373,7 @@ protected:
     }
 
     double compensate_velocity(int joint_nr, double cur_velocity){
-        Vector6d vel_comp; vel_comp << 7.8,11,8,2,2,2;
+        Vector6d vel_comp; vel_comp << 7.9,11,7.2,1.9,1.8,1.8;
         return (2*vel_comp(joint_nr))/(1+exp(-50*cur_velocity))-vel_comp(joint_nr);
                     //(signum_c(cur_velocity)*vel_comp(i))
     }

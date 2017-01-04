@@ -11,10 +11,10 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_eigen
   dynamic_reconfigure
   ur_modern_driver
-  ur_kinematics
+ # ur_kinematics
   cmake_modules
   leap_motion
-  rosparam_handler
+#  rosparam_handler
   actionlib_msgs
 )
 add_definitions(-std=c++11)
@@ -157,7 +157,7 @@ link_directories( ../../devel/lib lib)
  add_executable(ati_bridge src/ati_bridge.cpp)
  add_executable(ur5_model src/ur5_model.cpp)
  add_executable(leap_commander src/leap_commander.cpp)
- add_executable(haptic_band src/haptic_band_v2.cpp)
+# add_executable(haptic_band src/haptic_band_v2.cpp)
  add_executable(collisions src/collisions.cpp)
  add_executable(soma_framework src/soma_framework.cpp)
 
@@ -172,7 +172,7 @@ link_directories( ../../devel/lib lib)
  add_dependencies(ati_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(ur5_model ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_genparam)
  add_dependencies(leap_commander ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
- add_dependencies(haptic_band ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(haptic_band ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(collisions ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(soma_framework ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
@@ -185,7 +185,7 @@ add_dependencies(soma_framework ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXP
  target_link_libraries(pisa_hand_bridge   ${catkin_LIBRARIES} )
  target_link_libraries(ati_bridge   ${catkin_LIBRARIES} )
  target_link_libraries(leap_commander   ${catkin_LIBRARIES} )
- target_link_libraries(haptic_band ${catkin_LIBRARIES} )
+# target_link_libraries(haptic_band ${catkin_LIBRARIES} )
  target_link_libraries(collisions ${catkin_LIBRARIES} ur5_kin )
 target_link_libraries(soma_framework ${catkin_LIBRARIES} ur5_kin )
 
