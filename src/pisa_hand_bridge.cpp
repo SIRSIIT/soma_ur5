@@ -77,7 +77,7 @@ protected:
         }
     }
     void hand_meas_cb(const qb_interface::handPos::ConstPtr &msg){
-        if(!isnan(msg->closure.at(0))){
+        if(!std::isnan(msg->closure.at(0))){
             ti->update_pos(msg->closure.at(0));
         }
     }

@@ -11,9 +11,11 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_eigen
   dynamic_reconfigure
   ur_modern_driver
- # ur_kinematics
+  ur_kinematics
   cmake_modules
   leap_motion
+  qb_interface
+  keyboard
 #  rosparam_handler
   actionlib_msgs
 )
