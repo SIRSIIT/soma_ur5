@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   ur_kinematics
   cmake_modules
   qb_interface
-  keyboard
+  sirsiit_utils
 #  rosparam_handler
   actionlib_msgs
 )

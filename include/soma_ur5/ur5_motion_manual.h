@@ -13,7 +13,7 @@
 #include <soma_ur5/ur5_motion.h>
 #include <ur_kinematics/ur_kin.h>
 #include <Eigen/Dense>
-#include <soma_ur5/utils.h>
+#include <sirsiit_utils/utils.h>
 
 
 

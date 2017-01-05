@@ -30,7 +30,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <soma_ur5/dyn_ur5_controllerConfig.h>
 #include <ctime>
-#include <soma_ur5/utils.h>
+#include <sirsiit_utils/utils.h>
 #include <boost/algorithm/string.hpp>
 //#define M_PI 3.14159265
 #define MAX_SPEED 0.3

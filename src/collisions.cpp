@@ -7,7 +7,7 @@
 #include <tf2/transform_datatypes.h>
 #include <ur_kinematics/ur_kin.h>
 #include <Eigen/Core>
-#include <soma_ur5/utils.h>
+#include <sirsiit_utils/utils.h>
 #include <tf2/convert.h>
 #include <tf2/transform_datatypes.h>
 #include <tf2_eigen/tf2_eigen.h>
@@ -17,7 +17,7 @@
 #include <kdl/jacobian.hpp>
 #include <kdl/chainfksolverpos_recursive.hpp>
 #include <kdl/chainjnttojacsolver.hpp>
-#include <soma_ur5/lp_filter.h>
+#include <sirsiit_utils/lp_filter.h>
 
 typedef Eigen::Matrix< double, 6, 6 > Matrix6d;
 typedef Eigen::Matrix< double, 6, 1 > Vector6d;
