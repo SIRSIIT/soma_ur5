@@ -459,8 +459,8 @@ void UR5_Model::run(){
     // }
     //  calculateJacobian(joint_pos);
     // ROS_INFO_STREAM("P: " << params.speed_gain);
-    if((t_last_command-ros::Time::now()).toSec()>0.1 && !stopped){
-        if((t_last_command-ros::Time::now()).toSec()>1) {
+    if((ros::Time::now()-t_last_command).toSec()>0.1 && !stopped){
+        if((ros::Time::now()-t_last_command).toSec()>1) {
             stopped=true;
             ROS_WARN("Robot stopped");
         }

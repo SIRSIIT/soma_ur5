@@ -1,6 +1,7 @@
 #ifndef INCLUDE_GRASP_FEEDBACK_H_
 #define INCLUDE_GRASP_FEEDBACK_H_
 #include <vector>
+#include <numeric>
 
 class Grasp_Feedback{
 public:
