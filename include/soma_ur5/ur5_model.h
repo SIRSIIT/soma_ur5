@@ -68,6 +68,8 @@ protected:
 //    soma_ur5::dyn_ur5_modelParameters *params_;
     dynamic_reconfigure::Server<soma_ur5::dyn_ur5_modelConfig> config_server;
     void reconfigureRequest(soma_ur5::dyn_ur5_modelConfig& config, uint32_t level);
+    ros::Time t_last_command;
+    bool stopped;
 
     struct Params{
         double speed_gain;

@@ -118,6 +118,7 @@ UR5_Model::UR5_Model(ros::NodeHandle nh_in)
     else jo={0,1,2,3,4,5};
 
 
+    t_last_command=ros::Time::now();
 
     speed_command = nh->advertise<trajectory_msgs::JointTrajectory>("ur_driver/joint_speed",5);
     nh->getParam("limits/workspace", map_ws_lim);
@@ -287,7 +288,7 @@ void UR5_Model::goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &m
     for(int i=0;i<robot_chain.getNrOfJoints();i++){
         joints(i)=cur_joints.position.at(i);
     }
- //   vels=calcSpeeds(getEEpose(joints),msg->pose,params.speed_gain);
+    //   vels=calcSpeeds(getEEpose(joints),msg->pose,params.speed_gain);
 
     geometry_msgs::PoseStamped robotposition = *msg;
     //robotposition.pose.position.y = -0.815056156678;
@@ -312,6 +313,9 @@ void UR5_Model::goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &m
 
     ROS_WARN("Joints: %f %f %f %f %f %f",target_joints(0),target_joints(1),target_joints(2),target_joints(3),target_joints(4),target_joints(5));
     speed_command.publish(safety_enforcer(vels));
+    t_last_command=ros::Time::now();
+    stopped=false;
+
 }
 
 void UR5_Model::joint_state_callback(const sensor_msgs::JointState::ConstPtr &msg){
@@ -454,7 +458,24 @@ void UR5_Model::run(){
     //    joint_pos(i)=cur_joints.position.at(i);
     // }
     //  calculateJacobian(joint_pos);
-    ROS_INFO_STREAM("P: " << params.speed_gain);
+    // ROS_INFO_STREAM("P: " << params.speed_gain);
+    if((t_last_command-ros::Time::now()).toSec()>0.1 && !stopped){
+        if((t_last_command-ros::Time::now()).toSec()>1) {
+            stopped=true;
+            ROS_WARN("Robot stopped");
+        }
+        else{
+            trajectory_msgs::JointTrajectory vels;
+            for(int i=0;i<cur_joints.name.size();i++){
+                vels.joint_names.push_back(cur_joints.name.at(i));
+            }
+            vels.points.resize(1);
+            vels.points.at(0).velocities.resize(6);
+            for(int i=0;i<robot_chain.getNrOfJoints();i++){
+                vels.points.at(0).velocities.at(i)=0;
+            }
+        }
+    }
 }
 
 

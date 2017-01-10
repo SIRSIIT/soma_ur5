@@ -39,7 +39,7 @@
   </group>
    
    <!-- Haptic band -->
-  <node pkg="soma_ur5" type="haptic_band" name="haptic_band" output="screen"/>
+  <!--node pkg="soma_ur5" type="haptic_band" name="haptic_band" output="screen"/-->
 
 
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
