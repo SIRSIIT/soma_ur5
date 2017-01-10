@@ -474,6 +474,7 @@ void UR5_Model::run(){
             for(int i=0;i<robot_chain.getNrOfJoints();i++){
                 vels.points.at(0).velocities.at(i)=0;
             }
+            speed_command.publish(vels);
         }
     }
 }
