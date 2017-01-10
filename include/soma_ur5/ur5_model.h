@@ -18,10 +18,10 @@
 #include <array>
 #include <sensor_msgs/JointState.h>
 #include <std_msgs/Float64MultiArray.h>
-#include <soma_ur5/lp_filter.h>
+#include <sirsiit_utils/lp_filter.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <trajectory_msgs/JointTrajectory.h>
-#include <soma_ur5/utils.h>
+#include <sirsiit_utils/utils.h>
 #include <soma_ur5/dyn_ur5_modelConfig.h>
 //#include <soma_ur5/dyn_ur5_modelParameters.h>
 #include <dynamic_reconfigure/server.h>

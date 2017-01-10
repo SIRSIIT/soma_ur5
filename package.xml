@@ -49,7 +49,9 @@
   <build_depend>dynamic_reconfigure</build_depend>
   <build_depend>leap_motion</build_depend>
   <build_depend>force_torque_sensor</build_depend>
-  <build_depend>rosparam_handler</build_depend>
+  <build_depend>qb_interface</build_depend>
+  <build_depend>sirsiit_utils</build_depend>
+  <!--build_depend>rosparam_handler</build_depend-->
   <build_depend>actionlib_msgs</build_depend>
 
 
@@ -75,9 +77,8 @@
   <run_depend>ur_kinematics</run_depend>
   <run_depend>ur_msgs</run_depend>
   <run_depend>dynamic_reconfigure</run_depend>
-  <run_depend>leap_motion</run_depend>
   <run_depend>force_torque_sensor</run_depend>
-  <run_depend>rosparam_handler</run_depend>
+  <!--run_depend>rosparam_handler</run_depend-->
   <run_depend>actionlib_msgs</run_depend>
 
 

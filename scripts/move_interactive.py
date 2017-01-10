@@ -47,6 +47,7 @@ class UR5_Interactive:
     menu_handler = MenuHandler()
     br = None
     counter = 0
+
     
     def cb_once(this,msg):
         this.initial_pose=msg.pose;
@@ -138,7 +139,6 @@ class UR5_Interactive:
     # Marker Creation
 
     def make6DofMarker(this, fixed, interaction_mode, pose, show_6dof = False):
-        this.int_marker = InteractiveMarker()
         this.int_marker.header.frame_id = "base_link"
         this.int_marker.pose.position = pose.position
         this.int_marker.pose.orientation = pose.orientation
@@ -246,6 +246,7 @@ class UR5_Interactive:
         this.menu_handler.apply( this.server, this.int_marker.name )
 
     def go(this):
+        this.int_marker = InteractiveMarker()
         this.goal_pub = rospy.Publisher('goal_pose', geometry_msgs.msg.PoseStamped, queue_size=10)     
         #this.grasp_pub = rospy.Publisher('/soft_hand/joint_position_controller/command', std_msgs.msg.Float64, queue_size=10)     
         this.grasp_pub = rospy.Publisher('/qb_class/hand_ref', handRef, queue_size=10)     

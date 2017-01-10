@@ -7,7 +7,7 @@
 #include <tf2/transform_datatypes.h>
 #include <ur_kinematics/ur_kin.h>
 #include <Eigen/Core>
-#include <soma_ur5/utils.h>
+#include <sirsiit_utils/utils.h>
 #include <tf2/convert.h>
 #include <tf2/transform_datatypes.h>
 #include <tf2_eigen/tf2_eigen.h>
@@ -17,7 +17,7 @@
 #include <kdl/jacobian.hpp>
 #include <kdl/chainfksolverpos_recursive.hpp>
 #include <kdl/chainjnttojacsolver.hpp>
-#include <soma_ur5/lp_filter.h>
+#include <sirsiit_utils/lp_filter.h>
 
 typedef Eigen::Matrix< double, 6, 6 > Matrix6d;
 typedef Eigen::Matrix< double, 6, 1 > Vector6d;
@@ -373,7 +373,7 @@ protected:
     }
 
     double compensate_velocity(int joint_nr, double cur_velocity){
-        Vector6d vel_comp; vel_comp << 7.8,11,8,2,2,2;
+        Vector6d vel_comp; vel_comp << 7.9,11,7.2,1.9,1.8,1.8;
         return (2*vel_comp(joint_nr))/(1+exp(-50*cur_velocity))-vel_comp(joint_nr);
                     //(signum_c(cur_velocity)*vel_comp(i))
     }
