@@ -2,7 +2,7 @@
 <launch>
 	<group ns="ur5">
 		<node pkg="leap_motion" type="sender.py" name="sender"/>
-	  	<node pkg="soma_ur5" type="leap_commander" name="leap_commander"/>
+	  	<node pkg="sirsiit_haptic" type="leap_commander" name="leap_commander"/>
 	</group>
 		<node pkg="keyboard" type="keyboard" name="keyboard"/> 
 	  	<node pkg="tf" type="static_transform_publisher" name="tf_w2l" args="0.42 0 0 1.57 0 0 /world /leap_base 100" />
