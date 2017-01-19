@@ -39,14 +39,10 @@ inline bool const empty_msg(T a){
     return ret;
 }
 
-
-
-
 class UR5_Model{
 public:
     UR5_Model(ros::NodeHandle nh_in);
     void run();
-
 protected:
     ros::NodeHandle *nh;
     KDL::Tree robot_tree,robot_tree_w_hand;
@@ -86,10 +82,8 @@ protected:
     void reconfigureRequest(soma_ur5::dyn_ur5_modelConfig& config, uint32_t level);
     ros::Time t_last_command;
     bool stopped;
-
     void execute_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>::GoalHandle goal, actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>* as);
     void cancel_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>::GoalHandle goal, actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>* as);
-
 
     struct Params{
         double speed_gain;
