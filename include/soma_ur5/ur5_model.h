@@ -25,13 +25,28 @@
 #include <soma_ur5/dyn_ur5_modelConfig.h>
 //#include <soma_ur5/dyn_ur5_modelParameters.h>
 #include <dynamic_reconfigure/server.h>
+#include <actionlib/server/action_server.h>
+#include <soma_ur5/SOMAFrameworkAction.h>
 
 typedef Eigen::Matrix< double, 6, 1 > Vector6d;
+
+template <typename T>
+inline bool const empty_msg(T a){
+    bool ret=true;
+    if(a.x!=0) ret=false;
+    else if(a.y!=0) ret=false;
+    else if(a.z!=0) ret=false;
+    return ret;
+}
+
+
+
 
 class UR5_Model{
 public:
     UR5_Model(ros::NodeHandle nh_in);
     void run();
+
 protected:
     ros::NodeHandle *nh;
     KDL::Tree robot_tree,robot_tree_w_hand;
@@ -44,6 +59,7 @@ protected:
     bool init,using_gazebo,using_hand;
     ros::Subscriber sub_joints,sub_goal_pose;
     ros::Publisher pub_joint_torque,pub_joint_kdl,pub_kdl_pose,speed_command;
+    actionlib::ActionServer<soma_ur5::SOMAFrameworkAction> *act_srv;
     sensor_msgs::JointState cur_joints;
     Eigen::Matrix<double,6,2> currents_to_torques;
     std::vector<LP_Filter> cur_filters;
@@ -70,6 +86,10 @@ protected:
     void reconfigureRequest(soma_ur5::dyn_ur5_modelConfig& config, uint32_t level);
     ros::Time t_last_command;
     bool stopped;
+
+    void execute_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>::GoalHandle goal, actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>* as);
+    void cancel_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>::GoalHandle goal, actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>* as);
+
 
     struct Params{
         double speed_gain;

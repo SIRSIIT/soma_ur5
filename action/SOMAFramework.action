@@ -1,3 +1,9 @@
+uint8 INVALID = 0   # Invalid
+uint8 FORCE = 1   # Invalid
+uint8 POSITION = 2   # Invalid
+uint8 VELOCITY = 3   # Invalid
+uint8 FOLLOW = 3   # Invalid
+
 #goal definition
 int32 order
 std_msgs/Header header
