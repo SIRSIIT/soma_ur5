@@ -7,41 +7,8 @@ UR5_Model::UR5_Model(ros::NodeHandle nh_in)
     f=boost::bind(&UR5_Model::reconfigureRequest, this, _1, _2);
     config_server.setCallback(f);
 
-    //params_= new soma_ur5::dyn_ur5_modelParameters({ros::NodeHandle("~")});
-    //ROS_INFO("A");
-    //params_->fromParamServer();
-    //ROS_INFO("B");
-
-    //    currents_to_torques << 1.0000 ,   0.0435,
-    //                           0.0763 ,   0.5031,
-    //                           0.1014 ,  -0.0076,
-    //                           0.5753 ,  -0.1368,
-    //                           0.1742 ,  -0.0147,
-    //                           1.0000 ,  -0.0190;
-
-
-    //    currents_to_torques << 1.0000  ,  0.0111,
-    //                           0.0390  ,  1.1750,
-    //                           0.0418  ,  0.6124,
-    //                           0.0619  ,  0.0523,
-    //                           0.1052  ,  0.0655,
-    //                           0.0344  ,  0.0463;
-
-    //currents_to_torques <<    10.0000 ,   0.0000,
-    //                          13.9373 ,  -0.6318,
-    //                          12.5725 ,   0.9007,
-    //                           3.5255 ,   0.2833,
-    //                           0.6054 ,  -0.0445,
-    //                          -3.2312 ,   0.1146;
-
-
-    currents_to_torques <<    13.2 ,   0.0000,
-            13.2, 0.0000,
-            13.2,   0.0000,
-            9.3,  0.0000,
-            9.3, 0.0000,
-            9.3 ,  0.0000;
-
+    currents_to_torques <<    13.2, 0.0, 13.2, 0.0, 13.2, 0.0,
+            09.3, 0.0, 09.3, 0.0, 09.3, 0.0;
 
     for(int i=0;i<6;i++){
         cur_filters.push_back(LP_Filter(20));
@@ -49,19 +16,14 @@ UR5_Model::UR5_Model(ros::NodeHandle nh_in)
 
     //this->nh=new ros::NodeHandle();
     this->nh=&nh_in;
-
     init=false;    using_gazebo=false; using_hand=true;
-
     cur_joints.name.resize(6);cur_joints.position.resize(6);
     cur_joints.velocity.resize(6);cur_joints.effort.resize(6);
-
-    sub_joints = nh->subscribe("joint_states", 1000, &UR5_Model::joint_state_callback, this);
+    sub_joints = nh->subscribe("joint_states", 5, &UR5_Model::joint_state_callback, this);
+    sub_forces = nh->subscribe("/netft_data", 5, &UR5_Model::force_callback, this);
     pub_joint_torque = nh->advertise<std_msgs::Float64MultiArray>("kdl_torque",5);
-
     pub_joint_kdl = nh->advertise<sensor_msgs::JointState>("kdl_joints",5);
     pub_kdl_pose = nh->advertise<geometry_msgs::PoseStamped>("ee_pose",10);
-
-
 
     kdl_parser::treeFromParam("/robot_description",robot_tree_w_hand);
     kdl_parser::treeFromParam("robot_description",robot_tree);
@@ -209,12 +171,12 @@ trajectory_msgs::JointTrajectory UR5_Model::calcSpeeds(geometry_msgs::Pose cur_p
     deltaX=getDeltaX(cur_pose,goal_pose);
     Jacobian=getJacobian(cur_joints);
     /*
-    KDL::JntArray joints=KDL::JntArray(robot_chain.getNrOfJoints());
-    for(int i=0;i<robot_chain.getNrOfJoints();i++){
-        joints(i)=cur_joints.position.at(i);
-    }
+   *    KDL::JntArray joints=KDL::JntArray(robot_chain.getNrOfJoints());
+   *    for(int i=0;i<robot_chain.getNrOfJoints();i++){
+   *        joints(i)=cur_joints.position.at(i);
+}
 
-    calculateJacobian(joints,Jacobian);
+calculateJacobian(joints,Jacobian);
 */
 
 
@@ -304,8 +266,6 @@ void UR5_Model::goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &m
     KDL::Jacobian Jac;
     Jac_solver->JntToJac(joints,Jac);
 
-
-
     for(int i=0;i<cur_joints.name.size();i++){
         vels.joint_names.push_back(cur_joints.name.at(i));
     }
@@ -315,11 +275,15 @@ void UR5_Model::goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &m
         vels.points.at(0).velocities.at(i)=(target_joints(i)-joints(i))*params.speed_gain;
     }
 
-    ROS_WARN("Joints: %f %f %f %f %f %f",target_joints(0),target_joints(1),target_joints(2),target_joints(3),target_joints(4),target_joints(5));
+    ROS_DEBUG("Joints: %f %f %f %f %f %f",target_joints(0),target_joints(1),target_joints(2),target_joints(3),target_joints(4),target_joints(5));
     speed_command.publish(safety_enforcer(vels));
     t_last_command=ros::Time::now();
     stopped=false;
 
+}
+
+void UR5_Model::force_callback(const geometry_msgs::WrenchStamped::ConstPtr &msg){
+    cur_force=*msg;
 }
 
 void UR5_Model::joint_state_callback(const sensor_msgs::JointState::ConstPtr &msg){
@@ -397,19 +361,19 @@ KDL::JntArray UR5_Model::getGravityTorques(KDL::JntArray joint_pos){
 
     KDL::Vector g(0,0,-9.8);
     /*KDL::ChainDynParam DynPar= KDL::ChainDynParam(robot_chain_w_hand,g);
-    KDL::JntArray grav_torq = KDL::JntArray(robot_chain_w_hand.getNrOfJoints());
-
-    DynPar.JntToGravity(joint_pos,grav_torq);
-    ROS_INFO("JT_g: %f %f %f %f %f %f",grav_torq(0),grav_torq(1),grav_torq(2)
-             ,grav_torq(3),grav_torq(4),grav_torq(5));
-
-*/
+   *    KDL::JntArray grav_torq = KDL::JntArray(robot_chain_w_hand.getNrOfJoints());
+   *
+   *    DynPar.JntToGravity(joint_pos,grav_torq);
+   *    ROS_INFO("JT_g: %f %f %f %f %f %f",grav_torq(0),grav_torq(1),grav_torq(2)
+   *             ,grav_torq(3),grav_torq(4),grav_torq(5));
+   *
+   */
 
     KDL::ChainDynParam DynPar2= KDL::ChainDynParam(robot_chain,g);
     KDL::JntArray grav_torq2 = KDL::JntArray(robot_chain.getNrOfJoints());
     DynPar2.JntToGravity(joint_pos,grav_torq2);
     ROS_DEBUG("JT_g2: %f %f %f %f %f %f",grav_torq2(0),grav_torq2(1),grav_torq2(2)
-             ,grav_torq2(3),grav_torq2(4),grav_torq2(5));
+              ,grav_torq2(3),grav_torq2(4),grav_torq2(5));
 
     sensor_msgs::JointState j_kdl;
     j_kdl.header.stamp=ros::Time::now();
@@ -426,33 +390,33 @@ KDL::JntArray UR5_Model::getGravityTorques(KDL::JntArray joint_pos){
 
     return grav_torq2;
     /*
-    ROS_INFO("DOF: %d %d",robot_chain_w_hand.getNrOfJoints(),robot_chain.getNrOfJoints());
-
-    int nn=7;
-    ROS_INFO("%f %s %f || %s %f",
-             joint_pos(1),
-             robot_chain_w_hand.getSegment(nn).getName().c_str(),
-             robot_chain_w_hand.getSegment(nn).getInertia().getMass(),
-             robot_chain.getSegment(nn).getName().c_str(),
-             robot_chain.getSegment(nn).getInertia().getMass());
-
-
-    sensor_msgs::JointState j_kdl;
-    std_msgs::Float64MultiArray j_array;
-    j_kdl.header.stamp=ros::Time::now();
-    for(int i=0;i<robot_chain.getNrOfJoints();i++){
-        cur_filters.at(i).add_measurement(cur_joints.effort.at(i));
-        j_kdl.position.push_back(joint_pos(i));
-        //j_kdl.position.push_back(cur_filters.at(i).get_average());
-        //j_kdl.velocity.push_back(cur_joints.velocity.at(i));
-        //j_kdl.velocity.push_back(grav_torq2(i)-cur_filters.at(i).get_average()*currents_to_torques(i,0)+currents_to_torques(i,1));
-        j_kdl.velocity.push_back(cur_filters.at(i).get_average()*currents_to_torques(i,0));
-        j_kdl.effort.push_back(grav_torq2(i));
-
-    }
-    pub_joint_torque.publish(j_array);
-    pub_joint_kdl.publish(j_kdl);
-    */
+   *    ROS_INFO("DOF: %d %d",robot_chain_w_hand.getNrOfJoints(),robot_chain.getNrOfJoints());
+   *
+   *    int nn=7;
+   *    ROS_INFO("%f %s %f || %s %f",
+   *             joint_pos(1),
+   *             robot_chain_w_hand.getSegment(nn).getName().c_str(),
+   *             robot_chain_w_hand.getSegment(nn).getInertia().getMass(),
+   *             robot_chain.getSegment(nn).getName().c_str(),
+   *             robot_chain.getSegment(nn).getInertia().getMass());
+   *
+   *
+   *    sensor_msgs::JointState j_kdl;
+   *    std_msgs::Float64MultiArray j_array;
+   *    j_kdl.header.stamp=ros::Time::now();
+   *    for(int i=0;i<robot_chain.getNrOfJoints();i++){
+   *        cur_filters.at(i).add_measurement(cur_joints.effort.at(i));
+   *        j_kdl.position.push_back(joint_pos(i));
+   *        //j_kdl.position.push_back(cur_filters.at(i).get_average());
+   *        //j_kdl.velocity.push_back(cur_joints.velocity.at(i));
+   *        //j_kdl.velocity.push_back(grav_torq2(i)-cur_filters.at(i).get_average()*currents_to_torques(i,0)+currents_to_torques(i,1));
+   *        j_kdl.velocity.push_back(cur_filters.at(i).get_average()*currents_to_torques(i,0));
+   *        j_kdl.effort.push_back(grav_torq2(i));
+   *
+}
+pub_joint_torque.publish(j_array);
+pub_joint_kdl.publish(j_kdl);
+*/
 }
 
 void UR5_Model::run(){
@@ -483,13 +447,54 @@ void UR5_Model::run(){
     }
 }
 
-void UR5_Model::execute_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>::GoalHandle goal, actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>* as){
-    boost::shared_ptr<const soma_ur5::SOMAFrameworkGoal> g=goal.getGoal();
-    soma_ur5::SOMAFrameworkFeedback fb;
-    geometry_msgs::Pose fb_pose;
-    goal.setAccepted("Executing action");
+bool UR5_Model::monitor_dummy(soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb){
+    return false;
+}  
 
+bool UR5_Model::monitor_wrench(soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb){
+    if((fabs(goal->wrench.force.x)-fabs(fb->cur_wrench.force.x))<0 ||
+            (fabs(goal->wrench.force.y)-fabs(fb->cur_wrench.force.y))<0 ||
+            (fabs(goal->wrench.force.z)-fabs(fb->cur_wrench.force.z))<0 ||
+            (fabs(goal->wrench.torque.x)-fabs(fb->cur_wrench.torque.x))<0 ||
+            (fabs(goal->wrench.torque.y)-fabs(fb->cur_wrench.torque.y))<0 ||
+            (fabs(goal->wrench.torque.z)-fabs(fb->cur_wrench.torque.z))<0) {
+        return true;
+    }
+    else return false;
+}
+bool UR5_Model::monitor_pose(soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb){
+    tf2::Vector3 distance_t(goal->pose.position.x-fb->cur_pose.position.x,
+                            goal->pose.position.y-fb->cur_pose.position.y,
+                            goal->pose.position.z-fb->cur_pose.position.z);
+
+    tf2::Quaternion goal_q(goal->pose.orientation.x,goal->pose.orientation.y,goal->pose.orientation.z,goal->pose.orientation.w);
+    tf2::Quaternion cur_q(fb->cur_pose.orientation.x,fb->cur_pose.orientation.y,fb->cur_pose.orientation.z,fb->cur_pose.orientation.w);
+    tf2::Quaternion distance_q=cur_q.inverse()*goal_q;
+
+    double dt=distance_t.length();
+    double da=distance_q.getAngleShortestPath();
+    if(dt<0.01 && da<0.1)    return true;
+    else return false;
+}
+
+void UR5_Model::control_force(soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb){
+    ROS_INFO("we're controlling force");
+}
+void UR5_Model::control_position(soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb){
+    ROS_INFO("we're controlling position");
+}
+void UR5_Model::control_velocity( soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb ){
+    ROS_INFO("we're controlling velocity");
+}
+
+void UR5_Model::control_follow( soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb ){
+    ROS_INFO("we're following");
+}
+
+
+int UR5_Model::parse_goal(soma_ur5::SOMAFrameworkGoal::ConstPtr g){
     int task=0;
+
     if(empty_msg(g->wrench.force) && empty_msg(g->wrench.torque)){
         ROS_WARN("No suitable controller");
         task=0;
@@ -516,18 +521,87 @@ void UR5_Model::execute_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAc
             }
         }
     }
+    return task;
+}
 
-    ros::Rate r(10);
+void UR5_Model::execute_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>::GoalHandle goal, actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>* as){
+    boost::shared_ptr<const soma_ur5::SOMAFrameworkGoal> g=goal.getGoal();
+    soma_ur5::SOMAFrameworkFeedback::Ptr fb(new soma_ur5::SOMAFrameworkFeedback());
+    soma_ur5::SOMAFrameworkResult res;
+    geometry_msgs::Pose fb_pose;
+    bool stop_exec=false;
+    boost::function<bool(soma_ur5::SOMAFrameworkFeedback::Ptr)> monitor_f,achieved_f;
+    boost::function<void(soma_ur5::SOMAFrameworkFeedback::Ptr)> exec_controller_f;
+
+    int task=parse_goal(g);
+
+    switch(task){
+    case 0:
+        task=0;
+        res.sequence.push_back(1);
+        res.success=false;
+        goal.setRejected(res,"No suitable controller");
+        return;
+    case soma_ur5::SOMAFrameworkGoal::FORCE:       
+	if(cur_force.header.stamp.sec==0){
+	  res.sequence.push_back(2);
+	  res.success=false;
+	  goal.setRejected(res,"No Force Sensor");
+	  return;
+	}
+	monitor_f=boost::bind(&UR5_Model::monitor_dummy, this,g,_1);
+	achieved_f=boost::bind(&UR5_Model::monitor_pose, this,g,_1);
+	exec_controller_f=boost::bind(&UR5_Model::control_force, this,g,_1);
+        break;
+    case soma_ur5::SOMAFrameworkGoal::POSITION:
+        monitor_f=boost::bind(&UR5_Model::monitor_wrench, this,g,_1);
+        achieved_f=boost::bind(&UR5_Model::monitor_pose, this,g,_1);
+        exec_controller_f=boost::bind(&UR5_Model::control_position, this,g,_1);
+	break;
+    case soma_ur5::SOMAFrameworkGoal::VELOCITY:
+        monitor_f=boost::bind(&UR5_Model::monitor_wrench, this,g,_1);
+        achieved_f=boost::bind(&UR5_Model::monitor_pose, this,g,_1);
+        exec_controller_f=boost::bind(&UR5_Model::control_velocity, this,g,_1);
+	break;
+    case soma_ur5::SOMAFrameworkGoal::FOLLOW:
+        if(cur_force.header.stamp.sec==0){
+            res.sequence.push_back(2);
+            res.success=false;
+            goal.setRejected(res,"No Force Sensor");
+            return;
+        }
+        monitor_f=boost::bind(&UR5_Model::monitor_dummy, this,g,_1);
+        achieved_f=boost::bind(&UR5_Model::monitor_pose, this,g,_1);
+        exec_controller_f=boost::bind(&UR5_Model::control_follow, this,g,_1);
+	break;
+    }
+
+    if(!stopped) {
+        ROS_WARN("Robot moving");
+        res.sequence.push_back(10);
+        res.success=false;
+        goal.setRejected(res,"Robot moving");
+        return;
+    }
+
+
+    goal.setAccepted("Executing action");
+    ros::Rate r(100);
     while (goal.getGoalStatus().status==actionlib_msgs::GoalStatus::ACTIVE){
         ros::spinOnce();
-        ROS_INFO("YAY,%d %d %d",task,goal.isValid(),goal.getGoalStatus().status);
-        fb_pose.position.x=40*(double) std::rand()/RAND_MAX;
-        fb.cur_pose=fb_pose;
-        goal.publishFeedback(fb);
-        r.sleep();
-        g=goal.getGoal();
+        if(!achieved_f(fb)){
+            if(!monitor_f(fb)){
+                ROS_INFO("GOOD");
+                exec_controller_f(fb);
+            }
+        }
     }
+
+    fb->cur_pose=fb_pose;
+    goal.publishFeedback(*fb);
+    r.sleep();
 }
+
 
 void UR5_Model::cancel_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>::GoalHandle goal, actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>* as){
     boost::shared_ptr<const soma_ur5::SOMAFrameworkGoal> a=goal.getGoal();

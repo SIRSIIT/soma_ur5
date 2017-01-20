@@ -20,6 +20,7 @@
 #include <std_msgs/Float64MultiArray.h>
 #include <sirsiit_utils/lp_filter.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/WrenchStamped.h>
 #include <trajectory_msgs/JointTrajectory.h>
 #include <sirsiit_utils/utils.h>
 #include <soma_ur5/dyn_ur5_modelConfig.h>
@@ -53,15 +54,17 @@ protected:
     KDL::RotationalInertia Cube_Rot_Inertia(double m,double w, double h, double d);
     std::array<int,6> jo;
     bool init,using_gazebo,using_hand;
-    ros::Subscriber sub_joints,sub_goal_pose;
+    ros::Subscriber sub_joints,sub_goal_pose, sub_forces;
     ros::Publisher pub_joint_torque,pub_joint_kdl,pub_kdl_pose,speed_command;
     actionlib::ActionServer<soma_ur5::SOMAFrameworkAction> *act_srv;
     sensor_msgs::JointState cur_joints;
     Eigen::Matrix<double,6,2> currents_to_torques;
     std::vector<LP_Filter> cur_filters;
+    geometry_msgs::WrenchStamped cur_force;
 
 
     void joint_state_callback(const sensor_msgs::JointState::ConstPtr &msg);
+    void force_callback(const geometry_msgs::WrenchStamped::ConstPtr &msg);
     bool calculateJacobian(KDL::JntArray in, Matrix6d &J);
     geometry_msgs::Pose getEEpose(KDL::JntArray joint_pos);
     KDL::JntArray getGravityTorques(KDL::JntArray q);
@@ -77,14 +80,22 @@ protected:
     double max_angle,max_speed;
     trajectory_msgs::JointTrajectoryPoint prev_vel;
 
-//    soma_ur5::dyn_ur5_modelParameters *params_;
+    //    soma_ur5::dyn_ur5_modelParameters *params_;
     dynamic_reconfigure::Server<soma_ur5::dyn_ur5_modelConfig> config_server;
     void reconfigureRequest(soma_ur5::dyn_ur5_modelConfig& config, uint32_t level);
     ros::Time t_last_command;
     bool stopped;
+    int parse_goal(soma_ur5::SOMAFrameworkGoal::ConstPtr g );
+    
     void execute_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>::GoalHandle goal, actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>* as);
     void cancel_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>::GoalHandle goal, actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>* as);
-
+    bool monitor_wrench( soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb);
+    bool monitor_pose( soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb);
+    bool monitor_dummy( soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb);
+    void control_force( soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb );
+    void control_position( soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb);
+    void control_velocity(  soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb );
+    void control_follow( soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb);
     struct Params{
         double speed_gain;
     } params;

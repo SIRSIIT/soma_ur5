@@ -2,14 +2,16 @@ uint8 INVALID = 0   # Invalid
 uint8 FORCE = 1   # Invalid
 uint8 POSITION = 2   # Invalid
 uint8 VELOCITY = 3   # Invalid
-uint8 FOLLOW = 3   # Invalid
+uint8 FOLLOW = 4  # Invalid
 
 #goal definition
 int32 order
+uint8 controller
 std_msgs/Header header
 geometry_msgs/Pose pose
 geometry_msgs/Wrench wrench
 geometry_msgs/Twist twist
+geometry_msgs/Vector3 ellipsoid
 float64 max_duration
 ---
 #result definition
