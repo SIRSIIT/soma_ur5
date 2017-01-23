@@ -28,6 +28,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <actionlib/server/action_server.h>
 #include <soma_ur5/SOMAFrameworkAction.h>
+#include <std_srvs/Empty.h>
 
 typedef Eigen::Matrix< double, 6, 1 > Vector6d;
 
@@ -53,18 +54,27 @@ protected:
     KDL::ChainFkSolverPos_recursive *fksolv;
     KDL::RotationalInertia Cube_Rot_Inertia(double m,double w, double h, double d);
     std::array<int,6> jo;
-    bool init,using_gazebo,using_hand;
+    bool init,using_gazebo,using_hand,got_force;
+    double hand_weight;
+    KDL::Vector hand_gvect,hand_rvect;
     ros::Subscriber sub_joints,sub_goal_pose, sub_forces;
-    ros::Publisher pub_joint_torque,pub_joint_kdl,pub_kdl_pose,speed_command;
+    ros::Publisher pub_joint_torque,pub_joint_kdl,pub_kdl_pose,speed_command,ee_force_pub;
+    ros::ServiceServer srv_ft_bias;
     actionlib::ActionServer<soma_ur5::SOMAFrameworkAction> *act_srv;
     sensor_msgs::JointState cur_joints;
     Eigen::Matrix<double,6,2> currents_to_torques;
-    std::vector<LP_Filter> cur_filters;
-    geometry_msgs::WrenchStamped cur_force;
+    std::vector<LP_Filter> cur_filters,force_filter;
+    geometry_msgs::WrenchStamped cur_force,cur_force_raw;
+    geometry_msgs::Wrench ft_offset;
+    geometry_msgs::PoseStamped cur_pose;
 
-
+    KDL::JntArray joint_pos;
+    void stop_robot();
     void joint_state_callback(const sensor_msgs::JointState::ConstPtr &msg);
     void force_callback(const geometry_msgs::WrenchStamped::ConstPtr &msg);
+    bool ft_bias_srv(std_srvs::Empty::Request &req,std_srvs::Empty::Response &rsp);
+    void ft_sensor_offset();
+    geometry_msgs::Wrench end_effector_weight();
     bool calculateJacobian(KDL::JntArray in, Matrix6d &J);
     geometry_msgs::Pose getEEpose(KDL::JntArray joint_pos);
     KDL::JntArray getGravityTorques(KDL::JntArray q);
@@ -74,12 +84,15 @@ protected:
     trajectory_msgs::JointTrajectory  safety_enforcer( trajectory_msgs::JointTrajectory in);
     Vector6d fwd_kin(double q[6]);
     Matrix6d getJacobian(sensor_msgs::JointState j);
+    void move_pose(const geometry_msgs::Pose goal_pose);
+    void move_twist(const geometry_msgs::Twist goal_twist);
+    void move_wrench(const geometry_msgs::Wrench goal_wrench);
 
     std::map<std::string,double> map_j_lim,map_ws_lim;
     std::string control_topic;
     double max_angle,max_speed;
     trajectory_msgs::JointTrajectoryPoint prev_vel;
-
+    trajectory_msgs::JointTrajectory vels_to_send;
     //    soma_ur5::dyn_ur5_modelParameters *params_;
     dynamic_reconfigure::Server<soma_ur5::dyn_ur5_modelConfig> config_server;
     void reconfigureRequest(soma_ur5::dyn_ur5_modelConfig& config, uint32_t level);
