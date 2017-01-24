@@ -51,6 +51,8 @@
   <build_depend>force_torque_sensor</build_depend>
   <build_depend>qb_interface</build_depend>
   <build_depend>sirsiit_utils</build_depend>
+  <build_depend>smach_ros</build_depend>
+  <build_depend>smach</build_depend>
   <!--build_depend>rosparam_handler</build_depend-->
   <build_depend>actionlib_msgs</build_depend>
 
@@ -76,6 +78,8 @@
   <run_depend>ur_gazebo</run_depend>
   <run_depend>ur_kinematics</run_depend>
   <run_depend>ur_msgs</run_depend>
+  <run_depend>smach_ros</run_depend>
+  <run_depend>smach</run_depend>
   <run_depend>dynamic_reconfigure</run_depend>
   <run_depend>force_torque_sensor</run_depend>
   <!--run_depend>rosparam_handler</run_depend-->

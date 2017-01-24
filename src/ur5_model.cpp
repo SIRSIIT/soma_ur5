@@ -730,8 +730,10 @@ void UR5_Model::execute_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAc
 
 
     goal.setAccepted("Executing action");
+    ros::Time t_action_start=ros::Time::now();
+
     ros::Rate r(50);
-    while (goal.getGoalStatus().status==actionlib_msgs::GoalStatus::ACTIVE){
+    while (goal.getGoalStatus().status==actionlib_msgs::GoalStatus::ACTIVE && (ros::Time::now()-t_action_start).toSec() < g->max_duration){
         ros::spinOnce();
         if(!achieved_f(fb)){
             if(!monitor_f(fb)){
@@ -760,7 +762,9 @@ void UR5_Model::execute_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAc
         r.sleep();
     }
     stop_robot();
-
+    res.sequence.push_back(1);
+    res.success=true;
+    goal.setSucceeded(res,"timed out");
 }
 
 void UR5_Model::stop_robot(){

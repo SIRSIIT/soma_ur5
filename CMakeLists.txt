@@ -15,6 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   qb_interface
   sirsiit_utils
+  smach_ros
+  smach
 #  rosparam_handler
   actionlib_msgs
 )
