@@ -29,6 +29,7 @@
 #include <actionlib/server/action_server.h>
 #include <soma_ur5/SOMAFrameworkAction.h>
 #include <std_srvs/Empty.h>
+#include <qb_interface/handRef.h>
 
 typedef Eigen::Matrix< double, 6, 1 > Vector6d;
 
@@ -58,7 +59,7 @@ protected:
     double hand_weight;
     KDL::Vector hand_gvect,hand_rvect;
     ros::Subscriber sub_joints,sub_goal_pose, sub_forces;
-    ros::Publisher pub_joint_torque,pub_joint_kdl,pub_kdl_pose,speed_command,ee_force_pub;
+    ros::Publisher pub_joint_torque,pub_joint_kdl,pub_kdl_pose,speed_command,ee_force_pub, pub_hand;
     ros::ServiceServer srv_ft_bias;
     actionlib::ActionServer<soma_ur5::SOMAFrameworkAction> *act_srv;
     sensor_msgs::JointState cur_joints;
@@ -104,6 +105,7 @@ protected:
     void cancel_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>::GoalHandle goal, actionlib::ActionServer<soma_ur5::SOMAFrameworkAction>* as);
     bool monitor_wrench( soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb);
     bool monitor_pose( soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb);
+    bool monitor_pose_old( soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb);
     bool monitor_dummy( soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb);
     void control_force( soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb );
     void control_position( soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb);

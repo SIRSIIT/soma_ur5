@@ -28,6 +28,7 @@ UR5_Model::UR5_Model(ros::NodeHandle nh_in)
     pub_joint_kdl = nh->advertise<sensor_msgs::JointState>("kdl_joints",5);
     pub_kdl_pose = nh->advertise<geometry_msgs::PoseStamped>("ee_pose",10);
     ee_force_pub=nh->advertise<geometry_msgs::WrenchStamped>("ee_force",5);
+    pub_hand=nh->advertise<qb_interface::handRef>("/qb_class/hand_ref",5);
 
     kdl_parser::treeFromParam("/robot_description",robot_tree_w_hand);
     kdl_parser::treeFromParam("robot_description",robot_tree);
@@ -58,7 +59,7 @@ UR5_Model::UR5_Model(ros::NodeHandle nh_in)
 
 
     for (int i=0;i<8;i++){
-        ROS_WARN("%s",robot_chain.getSegment(i).getName().c_str());        
+        ROS_WARN("%s",robot_chain.getSegment(i).getName().c_str());
     }
 
     Jac_solver=new KDL::ChainJntToJacSolver(robot_chain);
@@ -369,7 +370,7 @@ void UR5_Model::move_wrench(const geometry_msgs::Wrench goal_wrench){
     f_ee=bTe.M*f_ee;
     t_ee=bTe.M*t_ee;
     cur_t << f_ee[0], f_ee[1], f_ee[2],
-             t_ee[0], t_ee[1], t_ee[2];
+            t_ee[0], t_ee[1], t_ee[2];
 
 
     des_t << goal_wrench.force.x,goal_wrench.force.y,goal_wrench.force.z,
@@ -388,12 +389,12 @@ void UR5_Model::move_wrench(const geometry_msgs::Wrench goal_wrench){
     }
 
     ROS_DEBUG("Joints: %.3f %.3f %.3f %.3f %.3f %.3f",
-                    vels_to_send.points.at(0).velocities.at(0)*1000,
-                    vels_to_send.points.at(0).velocities.at(1)*1000,
-                    vels_to_send.points.at(0).velocities.at(2)*1000,
-                    vels_to_send.points.at(0).velocities.at(3)*1000,
-                    vels_to_send.points.at(0).velocities.at(4)*1000,
-                    vels_to_send.points.at(0).velocities.at(5)*1000);
+              vels_to_send.points.at(0).velocities.at(0)*1000,
+              vels_to_send.points.at(0).velocities.at(1)*1000,
+              vels_to_send.points.at(0).velocities.at(2)*1000,
+              vels_to_send.points.at(0).velocities.at(3)*1000,
+              vels_to_send.points.at(0).velocities.at(4)*1000,
+              vels_to_send.points.at(0).velocities.at(5)*1000);
     speed_command.publish(safety_enforcer(vels_to_send));
 }
 
@@ -592,18 +593,55 @@ bool UR5_Model::monitor_dummy(soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_u
     return false;
 }  
 
-bool UR5_Model::monitor_wrench(soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb){    
-    if((fabs(goal->wrench.force.x)-fabs(fb->cur_wrench.force.x))<0 ||
-            (fabs(goal->wrench.force.y)-fabs(fb->cur_wrench.force.y))<0 ||
-            (fabs(goal->wrench.force.z)-fabs(fb->cur_wrench.force.z))<0 ||
-            (fabs(goal->wrench.torque.x)-fabs(fb->cur_wrench.torque.x))<0 ||
-            (fabs(goal->wrench.torque.y)-fabs(fb->cur_wrench.torque.y))<0 ||
-            (fabs(goal->wrench.torque.z)-fabs(fb->cur_wrench.torque.z))<0) {
-        return true;
+
+bool UR5_Model::monitor_wrench(soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb){        
+    if(goal->wrench.force.x!=0){
+        if((fabs(goal->wrench.force.x)-fabs(fb->cur_wrench.force.x))<0) return true;
     }
-    else return false;
+    if(goal->wrench.force.y!=0){
+        if((fabs(goal->wrench.force.y)-fabs(fb->cur_wrench.force.y))<0) return true;
+    }
+    if(goal->wrench.force.z!=0){
+        if((fabs(goal->wrench.force.z)-fabs(fb->cur_wrench.force.z))<0) return true;
+    }
+    if(goal->wrench.torque.x!=0){
+        if((fabs(goal->wrench.torque.x)-fabs(fb->cur_wrench.torque.x))<0) return true;
+    }
+    if(goal->wrench.torque.y!=0){
+        if((fabs(goal->wrench.torque.y)-fabs(fb->cur_wrench.torque.y))<0) return true;
+    }
+    if(goal->wrench.torque.z!=0){
+        if((fabs(goal->wrench.torque.z)-fabs(fb->cur_wrench.torque.z))<0) return true;
+    }
+    return false;
 }
+
 bool UR5_Model::monitor_pose(soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb){
+    if(empty_msg(goal->pose.position) && empty_msg(goal->pose.orientation)) return false;
+
+    if(goal->pose.position.x!=0){
+        if(fabs(goal->pose.position.x-fb->cur_pose.position.x)>0.005) return false;
+    }
+    if(goal->pose.position.y!=0){
+        if(fabs(goal->pose.position.y-fb->cur_pose.position.y)>0.005) return false;
+    }
+    if(goal->pose.position.z!=0){
+        if(fabs(goal->pose.position.z-fb->cur_pose.position.z)>0.005) return false;
+    }
+    if(goal->pose.orientation.w!=0 || goal->pose.orientation.x!=0 ||
+       goal->pose.orientation.y!=0 || goal->pose.orientation.z!=0){
+        tf2::Quaternion goal_q(goal->pose.orientation.x,goal->pose.orientation.y,goal->pose.orientation.z,goal->pose.orientation.w);
+        tf2::Quaternion cur_q(fb->cur_pose.orientation.x,fb->cur_pose.orientation.y,fb->cur_pose.orientation.z,fb->cur_pose.orientation.w);
+        tf2::Quaternion distance_q=cur_q.inverse()*goal_q;
+        double da=distance_q.getAngleShortestPath();
+        if(da>0.1){
+            return false;
+        }
+    }
+    return true;
+}
+
+bool UR5_Model::monitor_pose_old(soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb){
     tf2::Vector3 distance_t(goal->pose.position.x-fb->cur_pose.position.x,
                             goal->pose.position.y-fb->cur_pose.position.y,
                             goal->pose.position.z-fb->cur_pose.position.z);
@@ -634,6 +672,7 @@ void UR5_Model::control_velocity( soma_ur5::SOMAFrameworkGoal::ConstPtr goal, so
 
 void UR5_Model::control_follow( soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur5::SOMAFrameworkFeedback::Ptr fb ){
     ROS_INFO("we're following");
+    move_twist(goal->twist);
 }
 
 
@@ -731,6 +770,8 @@ void UR5_Model::execute_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAc
 
     goal.setAccepted("Executing action");
     ros::Time t_action_start=ros::Time::now();
+    qb_interface::handRef grip_ref;
+    grip_ref.closure.push_back(g->ellipsoid.x);
 
     ros::Rate r(50);
     while (goal.getGoalStatus().status==actionlib_msgs::GoalStatus::ACTIVE && (ros::Time::now()-t_action_start).toSec() < g->max_duration){
@@ -739,6 +780,7 @@ void UR5_Model::execute_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAc
             if(!monitor_f(fb)){
                 ROS_INFO("GOOD");
                 exec_controller_f(fb);
+                pub_hand.publish(grip_ref);
                 t_last_command=ros::Time::now();
             }
             else{
@@ -762,9 +804,11 @@ void UR5_Model::execute_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAc
         r.sleep();
     }
     stop_robot();
-    res.sequence.push_back(1);
-    res.success=true;
-    goal.setSucceeded(res,"timed out");
+    if(goal.getGoalStatus().status==actionlib_msgs::GoalStatus::ACTIVE && (ros::Time::now()-t_action_start).toSec() > g->max_duration){
+        res.sequence.push_back(1);
+        res.success=true;
+        goal.setSucceeded(res,"timed out");
+    }
 }
 
 void UR5_Model::stop_robot(){
