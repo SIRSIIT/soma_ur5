@@ -66,7 +66,7 @@ protected:
     Eigen::Matrix<double,6,2> currents_to_torques;
     std::vector<LP_Filter> cur_filters,force_filter;
     geometry_msgs::WrenchStamped cur_force,cur_force_raw;
-    geometry_msgs::Wrench ft_offset;
+    geometry_msgs::Wrench ft_offset, cur_wrench_base;
     geometry_msgs::PoseStamped cur_pose;
 
     KDL::JntArray joint_pos;
@@ -76,6 +76,7 @@ protected:
     bool ft_bias_srv(std_srvs::Empty::Request &req,std_srvs::Empty::Response &rsp);
     void ft_sensor_offset();
     geometry_msgs::Wrench end_effector_weight();
+    geometry_msgs::Wrench wrench_in_base(geometry_msgs::Wrench in);
     bool calculateJacobian(KDL::JntArray in, Matrix6d &J);
     geometry_msgs::Pose getEEpose(KDL::JntArray joint_pos);
     KDL::JntArray getGravityTorques(KDL::JntArray q);

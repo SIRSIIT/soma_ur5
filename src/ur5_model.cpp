@@ -303,11 +303,14 @@ trajectory_msgs::JointTrajectory  UR5_Model::safety_enforcer( trajectory_msgs::J
         }
     }
 
+    double max=max_speed;
     for (int i=0;i<in.points.size();i++){
         for (int j=0;j<in.points.at(i).velocities.size();j++){
-            out.points.at(i).velocities.at(j)=std::max(std::min(max_speed,
-                                                                out.points.at(i).velocities.at(j)
-                                                                ),-max_speed);
+            //out.points.at(i).velocities.at(j)=std::max(std::min(max_speed,out.points.at(i).velocities.at(j)),-max_speed);
+            if(fabs(out.points.at(i).velocities.at(j))>max) max=fabs(out.points.at(i).velocities.at(j));
+        }
+        for (int j=0;j<in.points.at(i).velocities.size();j++){
+            out.points.at(i).velocities.at(j)=out.points.at(i).velocities.at(j)/max*max_speed;
         }
     }
     return out;
@@ -349,39 +352,52 @@ void UR5_Model::move_twist(const geometry_msgs::Twist goal_twist){
     speed_command.publish(safety_enforcer(vels_to_send));
 }
 
-void UR5_Model::move_wrench(const geometry_msgs::Wrench goal_wrench){
-
-    KDL::Jacobian J(robot_chain.getNrOfJoints());
-    KDL::JntArray joints=KDL::JntArray(robot_chain.getNrOfJoints());
+geometry_msgs::Wrench UR5_Model::wrench_in_base(geometry_msgs::Wrench in){
+    geometry_msgs::Wrench wr_base;
     KDL::Frame bTe;
-    Vector6d delta_t,des_t,cur_t,dq;
-
     fksolv->JntToCart(joint_pos,bTe);
-    Jac_solver->JntToJac(joint_pos,J);
 
-
-    KDL::Vector f_ee(cur_force.wrench.force.x,
-                     cur_force.wrench.force.y,
-                     cur_force.wrench.force.z);
-    KDL::Vector t_ee(cur_force.wrench.torque.x,
-                     cur_force.wrench.torque.y,
-                     cur_force.wrench.torque.z);
+    KDL::Vector f_ee(in.force.x,
+                     in.force.y,
+                     in.force.z);
+    KDL::Vector t_ee(in.torque.x,
+                     in.torque.y,
+                     in.torque.z);
 
     f_ee=bTe.M*f_ee;
     t_ee=bTe.M*t_ee;
-    cur_t << f_ee[0], f_ee[1], f_ee[2],
-            t_ee[0], t_ee[1], t_ee[2];
+
+    wr_base.force.x=f_ee[0];wr_base.force.y=f_ee[1];wr_base.force.z=f_ee[2];
+    wr_base.torque.x=t_ee[0];wr_base.torque.y=t_ee[1];wr_base.torque.z=t_ee[2];
+    return wr_base;
+}
+
+void UR5_Model::move_wrench(const geometry_msgs::Wrench goal_wrench){
+
+    KDL::Jacobian J(robot_chain.getNrOfJoints());
+
+    Vector6d delta_t,dq;
+    //Vector6d des_t,cur_t;
+
+    Jac_solver->JntToJac(joint_pos,J);
 
 
-    des_t << goal_wrench.force.x,goal_wrench.force.y,goal_wrench.force.z,
-            goal_wrench.torque.x,goal_wrench.torque.y,goal_wrench.torque.z;
+    //cur_t << f_ee[0], f_ee[1], f_ee[2],t_ee[0], t_ee[1], t_ee[2];
+    //des_t << goal_wrench.force.x,goal_wrench.force.y,goal_wrench.force.z,
+    //       goal_wrench.torque.x,goal_wrench.torque.y,goal_wrench.torque.z;
+    //delta_t=(des_t+cur_t);
+    geometry_msgs::Wrench cur_wr=wrench_in_base(cur_force.wrench);
+    delta_t << goal_wrench.force.x+cur_wr.force.x,
+            goal_wrench.force.y+cur_wr.force.y,
+            goal_wrench.force.z+cur_wr.force.z,
+            goal_wrench.torque.x+cur_wr.torque.x,
+            goal_wrench.torque.y+cur_wr.torque.y,
+            goal_wrench.torque.z+cur_wr.torque.z;
 
-
-    delta_t=(des_t+cur_t);
     delta_t[3]/=100;
     delta_t[4]/=100;
     delta_t[5]/=100;
-    ROS_DEBUG_STREAM("Force_d\n" << des_t << "\nForce_cur:\n" << cur_t << "\nDeltaT" << delta_t);
+    //    ROS_DEBUG_STREAM("Force_d\n" << des_t << "\nForce_cur:\n" << cur_t << "\nDeltaT" << delta_t);
 
     dq=J.data.transpose()*delta_t;
     for(int i=0;i<robot_chain.getNrOfJoints();i++){
@@ -684,7 +700,7 @@ int UR5_Model::parse_goal(soma_ur5::SOMAFrameworkGoal::ConstPtr g){
         task=0;
     }
     else{
-        if(empty_msg(g->twist.linear) && empty_msg(g->twist.linear)){
+        if(empty_msg(g->twist.linear) && empty_msg(g->twist.angular)){
             if(empty_msg(g->pose.position) && empty_msg(g->pose.orientation)){
                 ROS_INFO("Admittance (maintain a cart.Force)");
                 task=soma_ur5::SOMAFrameworkGoal::FORCE;
@@ -775,6 +791,10 @@ void UR5_Model::execute_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAc
 
     ros::Rate r(50);
     while (goal.getGoalStatus().status==actionlib_msgs::GoalStatus::ACTIVE && (ros::Time::now()-t_action_start).toSec() < g->max_duration){
+        fb->cur_wrench=wrench_in_base(cur_force.wrench);
+        fb->cur_pose=cur_pose.pose;
+        fb->header.stamp=ros::Time::now();
+        goal.publishFeedback(*fb);
         ros::spinOnce();
         if(!achieved_f(fb)){
             if(!monitor_f(fb)){
@@ -796,11 +816,6 @@ void UR5_Model::execute_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAc
             goal.setSucceeded(res,"Goal Achieved");
             stop_robot();
         }
-
-        fb->header.stamp=ros::Time::now();
-        fb->cur_wrench=cur_force.wrench;
-        fb->cur_pose=cur_pose.pose;
-        goal.publishFeedback(*fb);
         r.sleep();
     }
     stop_robot();
