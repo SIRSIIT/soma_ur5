@@ -380,6 +380,8 @@ protected:
    bool check_body(geometry_msgs::WrenchStamped &body_force){
         Vector6d torques_from_ee,compensated_body_torques,compensated_also_velocities;
         double q[6];
+        KDL::JntArray q_j;
+        q_j.resize(6);
         int i;
         torques_from_ee=end_effector();
         for (i=0;i<6;i++) {
@@ -387,16 +389,38 @@ protected:
             comp_filters.at(i).add_measurement(compensated_body_torques(i)+compensate_velocity(i,cur_joints.velocity.at(i)));
             compensated_also_velocities(i)=comp_filters.at(i).get_average();
             q[i]=cur_joints.position.at(i);
+            q_j.data[i]=cur_joints.position.at(i);
+
         }
         ROS_INFO_STREAM("BODY:\n" << compensated_also_velocities << "\n");
 
-        geometry_msgs::TransformStamped T;
-        tf2::Transform T_tf;
         bool collided=false;
         int cont_link=0;
 
+
+        KDL::Jacobian Jac;
+        Jac.resize(6);
+        jnt_to_jac_solver_->JntToJac(q_j,Jac);
+        /*for(int i=0;i<6;i++) {
+            for(int j=0;j<6;j++){
+                Jac_M(i,j)=Jac.data(i,j);
+            }
+        }*/
+        Vector6d F_body=Jac.data*compensated_also_velocities;
+
+        KDL::Frame P_ee;
+        fk_solver_->JntToCart(q_j,P_ee);
+        KDL::Vector F_v(F_body[0],F_body[1],F_body[2]);
+
+        F_v=P_ee.Inverse().M*F_v;
+        ROS_WARN_STREAM("BForces_EE: \n" << F_v.x() << "," << F_v.y() << "," << F_v.z());
+
+
+
+
+
         for (i=cur_joints.effort.size();i>0;i--){
-            if(fabs(compensated_also_velocities(i-1))>15.0){
+            if(fabs(compensated_also_velocities(i-1))>5.0){
                 collided=true;
                 cont_link=i;
                 break;
@@ -430,6 +454,11 @@ protected:
      //   ROS_INFO_STREAM("Transform \n" << tf2::transformToEigen(T).matrix());
 
 
+
+        body_force.wrench.force.x=F_v[0];
+        body_force.wrench.force.y=F_v[1];
+        body_force.wrench.force.z=F_v[2];
+
         if(cont_link>1){
             if(compensated_also_velocities(1)>compensated_also_velocities(2)) body_force.wrench.torque.x=compensated_also_velocities(1);
             else body_force.wrench.torque.x=compensated_also_velocities(2);
@@ -438,6 +467,7 @@ protected:
         body_force.header.stamp=ros::Time::now();
 
         return collided;
+        return true;
     }
 
     void check_collisions(){
