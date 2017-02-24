@@ -650,7 +650,7 @@ bool UR5_Model::monitor_pose(soma_ur5::SOMAFrameworkGoal::ConstPtr goal, soma_ur
         tf2::Quaternion cur_q(fb->cur_pose.orientation.x,fb->cur_pose.orientation.y,fb->cur_pose.orientation.z,fb->cur_pose.orientation.w);
         tf2::Quaternion distance_q=cur_q.inverse()*goal_q;
         double da=distance_q.getAngleShortestPath();
-        if(da>0.2){
+        if(fabs(utils::constrainAngle(da))>0.1){
             return false;
         }
     }
