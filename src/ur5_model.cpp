@@ -787,7 +787,7 @@ void UR5_Model::execute_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAc
     goal.setAccepted("Executing action");
     ros::Time t_action_start=ros::Time::now();
     qb_interface::handRef grip_ref;
-    grip_ref.closure.push_back(g->ellipsoid.x);
+    grip_ref.closure.resize(1);
 
     ros::Rate r(50);
     while (goal.getGoalStatus().status==actionlib_msgs::GoalStatus::ACTIVE && (ros::Time::now()-t_action_start).toSec() < g->max_duration){
@@ -798,7 +798,8 @@ void UR5_Model::execute_action(actionlib::ActionServer<soma_ur5::SOMAFrameworkAc
         ros::spinOnce();
         if(!achieved_f(fb)){
             if(!monitor_f(fb)){
-                ROS_INFO("GOOD");
+       //         ROS_INFO("GOOD");
+                grip_ref.closure.at(0)=g->ellipsoid.x;
                 exec_controller_f(fb);
                 pub_hand.publish(grip_ref);
                 t_last_command=ros::Time::now();

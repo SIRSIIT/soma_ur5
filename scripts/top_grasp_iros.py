@@ -13,6 +13,7 @@ import tf2_geometry_msgs
 from IPython import embed
 import math
 from tf import transformations as tt
+import numpy as np
 
 class Initial(smach.State):
   def __init__(self):
@@ -32,6 +33,7 @@ class TopGraspFull:
         self.poses=PoseArray();
         self.rate = rospy.Rate(10.0)
         self.sub_poses=rospy.Subscriber("/poses_boxes",PoseArray,self.poses_callback, queue_size=2)
+        self.sub_ee_pose=rospy.Subscriber("ee_pose",PoseStamped,self.ee_pose_cb, queue_size=2)
         self.pub_debug=rospy.Publisher("debug_poses", PoseStamped,queue_size=2)
         while not self.got_poses:
             rospy.loginfo("F: %s",self.poses.header.frame_id);
@@ -43,6 +45,9 @@ class TopGraspFull:
                 self.rate.sleep()
                 continue
         rospy.loginfo(self.bTc);
+
+    def ee_pose_cb(self,data):
+        self.ee_pose=data;
 
     def a_goto_initial(self):
         goal=SOMAFrameworkGoal();
@@ -58,7 +63,7 @@ class TopGraspFull:
         goal.pose.orientation.x= 0.50;
         goal.pose.orientation.y= 0.50;
         goal.pose.orientation.z= -0.50;
-        goal.wrench.force.z=-4.0;
+        goal.wrench.force.z=-10.0;
         return goal;
 
 
@@ -96,7 +101,36 @@ class TopGraspFull:
 
     def poses_callback(self,data):
         self.poses=data;
+        #for i in range(0,len(self.poses.poses)):
+        #    self.poses.poses[i]=self.add_pose_noise(self.poses.poses[i],0.10,0.01);
         self.got_poses=True;
+
+    def add_pose_noise(self,pose,magr,magt):
+        out_pose=Pose();
+        Md=tt.euler_matrix(0,0,magr*np.random.randn());
+        Md[0,3]=np.random.randn()*magt;
+        Md[1,3]=np.random.randn()*magt;
+        Md[2,3]=np.random.randn()*magt;
+
+        Mi=tt.quaternion_matrix([pose.orientation.x,pose.orientation.y,pose.orientation.z,pose.orientation.w]);
+        Mi[0,3]=pose.position.x;
+        Mi[1,3]=pose.position.y;
+        Mi[2,3]=pose.position.z;
+        print(Md)
+        Mr=tt.concatenate_matrices(Mi,Md);
+        q=tt.quaternion_from_matrix(Mr);
+        t=tt.translation_from_matrix(Mr);
+
+        out_pose.position.x=t[0];
+        out_pose.position.y=t[1];
+        out_pose.position.z=t[2];
+        out_pose.orientation.x=q[0];
+        out_pose.orientation.y=q[1];
+        out_pose.orientation.z=q[2];
+        out_pose.orientation.w=q[3];
+        return out_pose;
+
+
 
     def apply_ellipsoid(self,pose,ell):
         out_pose=Pose()
@@ -104,12 +138,26 @@ class TopGraspFull:
         Mit=tt.translation_matrix([pose.position.x,pose.position.y,pose.position.z])
         Mi=tt.concatenate_matrices(Mit,Mir)
         Mr=tt.euler_matrix(0,math.pi/2,0);
+        #Mr(:,4) => x=along smaller side of object y=along larger side of object z=up
+        #Me (ellipsoid) =
+        # center of the ellipsoid wrt the palm: 0.0262,   -0.0043,    0.0654
+        # PGD wrt the palm: -0.0529    0.2892    0.9558
+
         if ell is True:
-            Me=tt.euler_matrix(0.3,0,0);
-            Mr[0,3]=-0.03;
+            #Me=tt.euler_matrix(0.3,0,0);
+            Me=tt.euler_matrix(0.2938,0.0529, 0.0078)
+            Me[0,3]=0.0282
+            Me[1,3]=0.0187
+            Me[2,3]=-0.0076
+            #Me[0,3]=-0.0287
+            #Me[1,3]=-0.0159
+            #Me[2,3]=0.0112
+            #Mr[0,3]=-0.03;
+            #Mr[1,3]=-0.01;
         else:
             Me=tt.euler_matrix(0.0,0,0);
-            Mr[0,3]=-0.04;
+            Mr[0,3]=-0.03;
+            Mr[1,3]=-0.01;
 
         #embed()
         Mt=tt.concatenate_matrices(Mi,Mr,Me);
@@ -129,6 +177,7 @@ class TopGraspFull:
         in_pose.header=self.poses.header;
         in_pose.pose=pose;
         obj_pose_base=tf2_geometry_msgs.do_transform_pose(in_pose,self.bTc)
+        obj_pose_base.pose=self.add_pose_noise(obj_pose_base.pose,0.0,0.0);
         out_pose=self.apply_ellipsoid(obj_pose_base.pose,ell=ellipsoid)
         debug_pose=PoseStamped()
         debug_pose.pose=out_pose;
@@ -146,6 +195,7 @@ class TopGraspFull:
             t=raw_input('Go? (press N to go without ellipsoid)')
             if(t=='N'):
                 ellipsoid=False
+
             self.build_sm(self.poses,ellipsoid)
 
     def build_sm(self,poses,ellipsoid):
@@ -159,10 +209,10 @@ class TopGraspFull:
                 self.add_state(smach,'TopStart'+str(i),self.a_goto_initial(),'TopApproach'+str(i));
                 #smach.StateMachine.add('WaitPo'+str(i), WaitPoses(),userdata=self.got_poses,transitions={'got_poses':'TopApproach'+str(i)});
                 self.add_state(smach,'TopApproach'+str(i),self.a_goto_approach(poses.poses[i],ellipsoid),'TopReach'+str(i));
-                self.add_state(smach,'TopReach'+str(i),self.a_approach_down(v=-0.02,t=10,f=3.0,grip=0),'TopGrasp'+str(i));
+                self.add_state(smach,'TopReach'+str(i),self.a_approach_down(v=-0.02,t=10,f=3.0,grip=0),'TopAdjust'+str(i));
+                self.add_state(smach,'TopAdjust'+str(i),self.a_approach_down(v=0.01,t=1,f=7.0,grip=0.0),'TopGrasp'+str(i));
                 self.add_state(smach,'TopGrasp'+str(i),self.a_grasp_obj(grip=0.8),'TopLift'+str(i));
                 self.add_state(smach,'TopLift'+str(i),self.a_approach_down(v=0.03,t=5,f=10.0,grip=0.8),'TopStart'+str(i+1));
-
                 #smach.StateMachine.add('TopStart',smach_ros.SimpleActionState('soma_action',SOMAFrameworkAction,goal=self.goto_initial),transitions={'succeeded' : 'Success','preempted' : 'Failed','aborted' : 'Failed'} );
                 #smach.StateMachine.add('TopApproach',smach_ros.SimpleActionState('soma_action',SOMAFrameworkAction,goal=self.goto_approch(poses.poses[i])),transitions={'succeeded' : 'Success','preempted' : 'Failed','aborted' : 'Failed'} );
                 #smach.StateMachine.add('TopApproach',smach_ros.SimpleActionState('soma_action',SOMAFrameworkAction,goal=self.build_action()),transitions={'succeeded' : 'Success','preempted' : 'Failed','aborted' : 'Failed'} );
