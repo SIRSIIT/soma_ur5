@@ -17,11 +17,11 @@
 			 ixy="0" iyz="0" ixz="0"/>
 	</xacro:macro>
 
-	<xacro:macro name="wrist_sensor" params="parent child">
+	<xacro:macro name="wrist_sensor" params="parent child rot">
 
 	
 		<joint name="wrist_joint" type="fixed">
-		    <origin xyz="0 0 0.01" rpy="0 0 ${pi/2}"/>
+		    <origin xyz="0 0 0.01" rpy="0 0 ${rot}"/>
 			<parent link="${parent}"/>
 			<child link="ati_base"/>
 			<!--limit lower="-0.00001" upper="0.00001" effort="100" velocity="100"/>

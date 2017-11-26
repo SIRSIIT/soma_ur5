@@ -50,12 +50,14 @@ UR5_Model::UR5_Model(ros::NodeHandle nh_in)
 
     KDL::RigidBodyInertia Hand_inertia=KDL::RigidBodyInertia(Hand_mass+ati_gamma_mass,Hand_cog,Cube_Rot_Inertia(Hand_mass,0.08,0.12,0.2));
     robot_tree.addSegment(KDL::Segment("hand",KDL::Joint(),KDL::Frame(
-                                           KDL::Rotation(0.0,0.0,1.0,
-                                                         0,1,0,
-                                                         -1,0,0),KDL::Vector(0.20,-0.03,0.0)),Hand_inertia),"ee_link");
+                                           KDL::Rotation(0.0,   0.0,    1.0,
+                                                         0.707, 0.707,  0,
+                                                         -0.707,0.707,  0),KDL::Vector(0.20,-0.03,-0.03)),Hand_inertia),"ee_link");
 
 
     robot_tree.getChain("base_link","hand",robot_chain);
+    //robot_tree.getChain("base_link","soft_hand_palm_link",robot_chain);
+
 
 
     for (int i=0;i<8;i++){

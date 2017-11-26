@@ -16,12 +16,12 @@
 
   <joint name="world_joint" type="fixed">
     <parent link="world" />
-    <child link = "base_link" />
+    <child link = "base_link" />    
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
   </joint>
 
 
-  <xacro:wrist_sensor parent="tool0" child="ati_base_measurement"/> 
+  <xacro:wrist_sensor parent="tool0" child="ati_base_measurement" rot="${3*pi/4}"/> 
 
   <xacro:soft_hand parent="ati_base_measurement" name="soft_hand"  withAdaptiveTransmission="true" useMimicTag="false" left="true">
     <origin xyz="0 0 0.01" rpy="0 0 0"/>

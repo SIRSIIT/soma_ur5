@@ -56,13 +56,13 @@ class TopGraspFull:
         goal.header.frame_id='base_link';
         goal.header.stamp=rospy.Time.now();
         goal.pose=geometry_msgs.msg.Pose();
-        goal.pose.position.x=0.01;
-        goal.pose.position.y=-0.60;
+        goal.pose.position.x=-0.50;
+        goal.pose.position.y=-0.25;
         goal.pose.position.z=0.30;
-        goal.pose.orientation.w= 0.50;
-        goal.pose.orientation.x= 0.50;
-        goal.pose.orientation.y= 0.50;
-        goal.pose.orientation.z= -0.50;
+        goal.pose.orientation.w= -0.0;
+        goal.pose.orientation.x= -0.65;
+        goal.pose.orientation.y= -0.3;
+        goal.pose.orientation.z= 0.7;
         goal.wrench.force.z=-10.0;
         return goal;
 
