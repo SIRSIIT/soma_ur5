@@ -25,6 +25,7 @@
 #include <soma_ur5/dyn_ur5_modelConfig.h>
 //#include <soma_ur5/dyn_ur5_modelParameters.h>
 #include <dynamic_reconfigure/server.h>
+#include <ros/transport_hints.h>
 
 typedef Eigen::Matrix< double, 6, 1 > Vector6d;
 
@@ -44,6 +45,8 @@ protected:
     bool init,using_gazebo,using_hand;
     ros::Subscriber sub_joints,sub_goal_pose;
     ros::Publisher pub_joint_torque,pub_joint_kdl,pub_kdl_pose,speed_command;
+    ros::TransportHints hints = ros::TransportHints().udp().tcpNoDelay();
+
     sensor_msgs::JointState cur_joints;
     Eigen::Matrix<double,6,2> currents_to_torques;
     std::vector<LP_Filter> cur_filters;

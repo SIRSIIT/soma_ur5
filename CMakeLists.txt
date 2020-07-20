@@ -15,6 +15,9 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   leap_motion
   actionlib_msgs
+  netft_rdt_driver
+  std_msgs
+  message_generation
 )
 add_definitions(-std=c++11)
 
@@ -59,11 +62,11 @@ find_package(Eigen3 REQUIRED)
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
+ add_service_files(
+   FILES
+   ch_mapping.srv
 #   Service2.srv
-# )
+ )
 
 ## Generate actions in the 'action' folder
  add_action_files(
@@ -151,12 +154,12 @@ link_directories( ../../devel/lib lib)
  add_executable(controller src/controller.cpp)
  add_executable(ur5_controller src/ur5_controller_main.cpp)
  add_executable(haptic src/haptic.cpp)
- add_executable(gazebo_bridge src/gazebo_bridge.cpp)
- add_executable(pisa_hand_bridge src/pisa_hand_bridge.cpp)
+ #add_executable(gazebo_bridge src/gazebo_bridge.cpp)
+ #add_executable(pisa_hand_bridge src/pisa_hand_bridge.cpp)
  add_executable(ati_bridge src/ati_bridge.cpp)
  add_executable(ur5_model src/ur5_model.cpp)
- add_executable(leap_commander src/leap_commander.cpp)
- add_executable(haptic_band src/haptic_band.cpp)
+ #add_executable(leap_commander src/leap_commander.cpp)
+ #add_executable(haptic_band src/haptic_band.cpp)
  add_executable(collisions src/collisions.cpp)
  add_executable(soma_framework src/soma_framework.cpp)
 
@@ -166,12 +169,12 @@ link_directories( ../../devel/lib lib)
  add_dependencies(controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(ur5_controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(haptic ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
- add_dependencies(gazebo_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
- add_dependencies(pisa_hand_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+ #add_dependencies(gazebo_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+ #add_dependencies(pisa_hand_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(ati_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(ur5_model ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_genparam)
- add_dependencies(leap_commander ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
- add_dependencies(haptic_band ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+ #add_dependencies(leap_commander ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+ #add_dependencies(haptic_band ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(collisions ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(soma_framework ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
@@ -179,15 +182,18 @@ add_dependencies(soma_framework ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXP
  target_link_libraries(controller    ${catkin_LIBRARIES}   ur5_kin )
  target_link_libraries(ur5_controller    ${catkin_LIBRARIES})
  target_link_libraries(ur5_model   ${catkin_LIBRARIES}   ur5_kin )
- target_link_libraries(haptic ${catkin_LIBRARIES} drd dhd pthread usb-1.0 )
- target_link_libraries(gazebo_bridge   ${catkin_LIBRARIES} )
- target_link_libraries(pisa_hand_bridge   ${catkin_LIBRARIES} )
+ target_link_libraries(haptic ${catkin_LIBRARIES} drd dhd pthread usb-1.0)
+ #target_link_libraries(gazebo_bridge   ${catkin_LIBRARIES} )
+ #target_link_libraries(pisa_hand_bridge   ${catkin_LIBRARIES} )
  target_link_libraries(ati_bridge   ${catkin_LIBRARIES} )
- target_link_libraries(leap_commander   ${catkin_LIBRARIES} )
- target_link_libraries(haptic_band ${catkin_LIBRARIES} )
+ #target_link_libraries(leap_commander   ${catkin_LIBRARIES} )
+ #target_link_libraries(haptic_band ${catkin_LIBRARIES} )
  target_link_libraries(collisions ${catkin_LIBRARIES} ur5_kin )
 target_link_libraries(soma_framework ${catkin_LIBRARIES} ur5_kin )
 
+#add_executable(haptic_soma src/haptic.cpp)
+#target_link_libraries(haptic ${catkin_LIBRARIES})
+#add_dependencies(haptic haptic_gencpp)
 
 #############
 ## Install ##

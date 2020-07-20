@@ -6,7 +6,6 @@ UR5_Model::UR5_Model(ros::NodeHandle nh_in)
     dynamic_reconfigure::Server<soma_ur5::dyn_ur5_modelConfig>::CallbackType f;
     f=boost::bind(&UR5_Model::reconfigureRequest, this, _1, _2);
     config_server.setCallback(f);
-
     //params_= new soma_ur5::dyn_ur5_modelParameters({ros::NodeHandle("~")});
     //ROS_INFO("A");
     //params_->fromParamServer();
@@ -66,7 +65,7 @@ UR5_Model::UR5_Model(ros::NodeHandle nh_in)
     kdl_parser::treeFromParam("/robot_description",robot_tree_w_hand);
     kdl_parser::treeFromParam("robot_description",robot_tree);
 
-    robot_tree_w_hand.getChain("base_link","soft_hand_palm_link",robot_chain_w_hand);
+    robot_tree_w_hand.getChain("base_link","ur5_paletta_link",robot_chain_w_hand);
     KDL::SegmentMap segmap=robot_tree.getSegments();
 
     for(KDL::SegmentMap::iterator a=segmap.begin();a!=segmap.end();a++){
@@ -81,11 +80,14 @@ UR5_Model::UR5_Model(ros::NodeHandle nh_in)
     //    KDL::Vector Hand_cog(0.01,0,0.12);
     KDL::Vector Hand_cog(0.06,0,0.0);
 
+    // MAPPING EE_LINK TO PALETTA_LINK
     KDL::RigidBodyInertia Hand_inertia=KDL::RigidBodyInertia(Hand_mass+ati_gamma_mass,Hand_cog,Cube_Rot_Inertia(Hand_mass,0.08,0.12,0.2));
     robot_tree.addSegment(KDL::Segment("hand",KDL::Joint(),KDL::Frame(
-                                           KDL::Rotation(0.0,0.0,1.0,
-                                                         0,1,0,
-                                                         -1,0,0),KDL::Vector(0.05,0.0,0.0)),Hand_inertia),"ee_link");
+                                           KDL::Rotation(0.0014,1.0,0.0,
+                                                         1.0,-0.0014,-0.0042,
+                                                         -0.0042,0.0,-1.0),KDL::Vector(0.196,0.0,-0.178)),Hand_inertia),"ee_link");
+    // Paletta Old Values: KDL::Vector(0.136,0.0,-0.178): 0.136 is related to translation="0.035" in ur5_soma.urdf.xacro
+
 
 
     robot_tree.getChain("base_link","hand",robot_chain);
@@ -125,7 +127,8 @@ UR5_Model::UR5_Model(ros::NodeHandle nh_in)
     nh->getParam("control_topic", control_topic);
     nh->getParam("limits/max_angle", max_angle);
     nh->getParam("limits/max_speed", max_speed);
-    sub_goal_pose= nh->subscribe("goal_pose", 1000, &UR5_Model::goal_pose_callback, this);
+    //HINTS
+    sub_goal_pose= nh->subscribe("goal_pose", 1000,  &UR5_Model::goal_pose_callback, this, hints);
 }
 
 void UR5_Model::reconfigureRequest(soma_ur5::dyn_ur5_modelConfig& config, uint32_t level) {
@@ -287,9 +290,9 @@ void UR5_Model::goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &m
     for(int i=0;i<robot_chain.getNrOfJoints();i++){
         joints(i)=cur_joints.position.at(i);
     }
- //   vels=calcSpeeds(getEEpose(joints),msg->pose,params.speed_gain);
+    vels=calcSpeeds(getEEpose(joints),msg->pose,params.speed_gain*20);
 
-
+/*
     KDL::Frame kdl_goal;
     KDL::JntArray target_joints;
     tf::poseMsgToKDL(msg->pose,kdl_goal);
@@ -305,10 +308,11 @@ void UR5_Model::goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &m
     vels.points.resize(1);
     vels.points.at(0).velocities.resize(6);
     for(int i=0;i<robot_chain.getNrOfJoints();i++){
-        vels.points.at(0).velocities.at(i)=(target_joints(i)-joints(i))*params.speed_gain;
+        vels.points.at(0).velocities.at(i)=(target_joints(i)-joints(i))*params.speed_gain*20;
     }
 
     ROS_WARN("Joints: %f %f %f %f %f %f",target_joints(0),target_joints(1),target_joints(2),target_joints(3),target_joints(4),target_joints(5));
+*/
     speed_command.publish(safety_enforcer(vels));
 }
 
@@ -357,8 +361,37 @@ KDL::RotationalInertia UR5_Model::Cube_Rot_Inertia(double m,double w, double h, 
 geometry_msgs::Pose UR5_Model::getEEpose(KDL::JntArray joint_pos){
     KDL::Frame cart_pos;
     geometry_msgs::Pose pose;
+    tf2::Transform T_pose;
+    double r,p,y;
 
     fksolv->JntToCart(joint_pos,cart_pos);
+
+    double EE_Mat[16];
+    cart_pos.Make4x4(EE_Mat);
+    ROS_INFO("EE: \n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f",
+             EE_Mat[0],EE_Mat[1],EE_Mat[2],EE_Mat[3],
+            EE_Mat[4],EE_Mat[5],EE_Mat[6],EE_Mat[7],
+            EE_Mat[8],EE_Mat[9],EE_Mat[10],EE_Mat[11],
+            EE_Mat[12],EE_Mat[13],EE_Mat[14],EE_Mat[15]);
+
+    pose.position.x=cart_pos.p.x();//-0.002; // OFFSET between ee_pose and tool0
+    pose.position.y=cart_pos.p.y();//-0.0195;
+    pose.position.z=cart_pos.p.z();//+0.0465;
+
+    //T_pose=utils::Pose2Transform(pose);
+    //T_pose.getBasis().getRPY(r,p,y);
+
+    cart_pos.M.GetQuaternion(pose.orientation.x,pose.orientation.y,pose.orientation.z,pose.orientation.w);
+    return pose;
+}
+
+/*
+geometry_msgs::Pose UR5_Model::getPalettaPose(geometry_msgs::Pose ee_pose){
+    KDL::Frame cart_pos;
+    geometry_msgs::Pose pose;
+
+    Translation: [0.000, 0.178, 0.136]
+    Rotation: in Quaternion [0.002, 0.707, 0.707, 0.001]    
 
     double EE_Mat[16];
     cart_pos.Make4x4(EE_Mat);
@@ -374,6 +407,8 @@ geometry_msgs::Pose UR5_Model::getEEpose(KDL::JntArray joint_pos){
     cart_pos.M.GetQuaternion(pose.orientation.x,pose.orientation.y,pose.orientation.z,pose.orientation.w);
     return pose;
 }
+*/
+
 
 bool UR5_Model::calculateJacobian(KDL::JntArray in, Matrix6d &J){
     KDL::Jacobian Jac=KDL::Jacobian(6);

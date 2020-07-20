@@ -1,14 +1,29 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="robot_ip" default="192.168.1.102"/>
-  <arg name="sensor_ip" default="192.168.1.1"/>
-  <arg name="simulated" default="true"/>
+  <arg name="robot_ip" default="172.31.1.87"/>
+  <arg name="sensor_ip" default="172.31.1.39"/>
+  <arg name="simulated" default="false"/>
   <arg name="hand" default="true"/>
-  <arg name="use_rviz" default="false"/>
-  <arg name="gz_gui" default="true"/>
+  <arg name="use_rviz" default="true"/>
+  <arg name="gz_gui" default="false"/>
   <arg name="gz_debug" default="false"/>
+  <arg name="prefix" value="ur5"/> 
 
-  <param name="robot_description" command="$(find xacro)/xacro.py '$(find soma_ur5)/robot/ur5_soma.urdf.xacro'" if="$(arg hand)"/>
+  <!-- PALETTA CONFIGURATION-->
+  <arg name="configuration" default="1"/> 
+  <arg name="diagonal" default="0"/> 
+  <arg name="gazebo" default="false"/>
+  <!-- Settings: 
+
+    Standard Closure   configuration: 1 diagonal: 0 
+  
+    Horizontal Closure  configuration: 0 diagonal: 0 
+
+    Hug Closure  configuration: 0 diagonal: 1 
+
+  -->
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find soma_ur5)/robot/ur5_soma.urdf.xacro' prefix:=$(arg prefix) configuration:=$(arg configuration) diagonal:=$(arg diagonal) gazebo:=$(arg gazebo)" if="$(arg hand)"/>
+
   <param name="robot_description" command="$(find xacro)/xacro.py '$(find ur_description)/urdf/ur5_joint_limited_robot.urdf.xacro'" unless="$(arg hand)"/>
  
   <param name="use_sim_time" value="false" unless="$(arg simulated)" />
@@ -27,15 +42,19 @@
         <arg name="robot_ip" value="$(arg robot_ip)"/>
       </include>
     </group>
-    <node name="ati_sensor" pkg="netft_rdt_driver" type="netft_node" args="--address $(arg sensor_ip) --frame_id ati_base_measurement" />
-    <include if="$(arg hand)" file="$(find qb_interface)/launch/qb_interface.launch"/>
+        <param name="frame_id" value="ati_base_measurement"/>
+
+    <!--node name="ati_sensor" pkg="netft_rdt_driver" type="netft_node" args="address $(arg sensor_ip) frame_id ati_base_measurement" /-->
+    <!--include if="$(arg hand)" file="$(find qb_interface)/launch/qb_interface.launch"/-->
   </group>
-    
+
   <group ns="ur5">
       <rosparam file="$(find soma_ur5)/config/ur5_settings.yaml" command="load"/>   
       <!--node pkg="soma_ur5" type="ur5_controller" name="ur5_controller"/-->      
       <node pkg="soma_ur5" type="ur5_model" name="ur5_model"/>
       <node pkg="soma_ur5" type="collisions" name="collisions"/>
+      <node name="ati_sensor" pkg="netft_rdt_driver" type="netft_node" args="--address $(arg sensor_ip) --alpha 0.5"/>
+      <!--node name="ati_bridge" pkg="soma_ur5" type="ati_bridge"/-->
   </group>
    
 
@@ -49,7 +68,7 @@
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"  />
 
   <group if="$(arg use_rviz)">
-      <node name="my_rviz" pkg="rviz" type="rviz" respawn="false" args="-d $(find soma_ur5)/config/soma_teleop.rviz" output="screen"/>
+      <node name="my_rviz" pkg="rviz" type="rviz" respawn="false" args="-d $(find soma_ur5)/config/soma_teleop.rviz" output="log"/>
   </group>
 
   </launch>

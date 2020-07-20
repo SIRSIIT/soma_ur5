@@ -1,12 +1,17 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" 
        name="soft_hand">
-  <xacro:include filename="$(find soft_hand_description)/model/soft_hand.urdf.xacro"/>
-  <xacro:include filename="$(find force_torque_sensor)/model/ft_sensor.urdf.xacro"/>
+  <!--xacro:include filename="$(find soft_hand_description)/model/soft_hand.urdf.xacro"/-->
+  <!--xacro:include filename="$(find force_torque_sensor)/model/ft_sensor.urdf.xacro"/-->
+  <xacro:include filename="$(find robot_tools_description)/urdf/opto_ft_interface_macro.xacro" />
   
   <xacro:include filename="$(find ur_description)/urdf/ur5.urdf.xacro" />
   <xacro:include filename="$(find ur_description)/urdf/common.gazebo.xacro" />
   <xacro:include filename="$(find soma_ur5)/robot/ee_attachments.xacro" />
+
+  <xacro:include filename="$(find robot_tools_description)/urdf/pisa_adapter_macro.xacro" />
+  <xacro:include filename="$(find robot_tools_description)/urdf/clamp_macro.xacro" />
+  <xacro:include filename="$(find robot_tools_description)/paletta/urdf/paletta_macro.xacro" /> 
 
 
   <!-- arm -->
@@ -21,11 +26,21 @@
   </joint>
 
 
-  <xacro:wrist_sensor parent="tool0" child="ati_base_measurement"/> 
+  <!--xacro:wrist_sensor parent="tool0" child="ati_base_measurement"/--> 
 
-  <xacro:soft_hand parent="ati_base_measurement" name="soft_hand"  withAdaptiveTransmission="true" useMimicTag="false" left="true">
+<!--$(arg prefix)-->
+  <xacro:opto_ft_interface prefix="$(arg prefix)_" parent="tool0" translation="0.0" rotation="1.57079632679"/>
+<!--translation="0.035" -->
+  <xacro:clamp prefix="$(arg prefix)_" parent="$(arg prefix)_opto_ft_link" translation="0.095" rotation="0.0" hand="0" flange="1" nr="1"/>
+  
+  <xacro:pisa_adapter prefix="$(arg prefix)_" parent="$(arg prefix)_clamp_link1" hand="0" nr="" translation="" orientation="90"/> 
+  
+  <xacro:paletta prefix="$(arg prefix)_" parent="$(arg prefix)_pisa_adapter_link" configuration="$(arg configuration)" diagonal="$(arg diagonal) " gazebo="$(arg gazebo)"/>
+
+
+  <!--xacro:soft_hand parent="ati_base_measurement" name="soft_hand"  withAdaptiveTransmission="true" useMimicTag="false" left="true">
     <origin xyz="0 0 0.01" rpy="0 0 0"/>
-  </xacro:soft_hand>
+  </xacro:soft_hand-->
 
 
 

@@ -1,6 +1,5 @@
 #include <soma_ur5/haptic.h>
 #include "netft_rdt_driver/String_cmd.h"
-
    
    
 
@@ -10,7 +9,6 @@ Haptic::Haptic(){
     initialize_haptic();
 
     pub_hap_pose=nh->advertise<geometry_msgs::PoseStamped>("haptic_pose",5);
-    pub_d_pose=nh->advertise<geometry_msgs::PoseStamped>("d_pose",5);
     pub_robot_com=nh->advertise<geometry_msgs::PoseStamped>("goal_pose",5);
     pub_grip=nh->advertise<std_msgs::Float32>("cmd_gripper",5); //grip_cmd
     //pub_grip=nh->advertise<std_msgs::String>("cmd_gripper",5);
@@ -20,8 +18,6 @@ Haptic::Haptic(){
     sub_pose= nh->subscribe("ee_pose", 1000, &Haptic::robot_pose_callback, this);
     sub_grip= nh->subscribe("grip_feedback", 1000, &Haptic::grip_callback, this); 
     sub_force= nh->subscribe("ee_force", 1000, &Haptic::ee_force_callback, this);
-
-    sub_mapping= nh->subscribe("mapping", 10, &Haptic::mapping_callback, this);
 
     //nh->getParam("scale_factor", scale_factor);
 
@@ -225,7 +221,7 @@ bool Haptic::GetHapticInfo(geometry_msgs::Pose &h_pose){
 }
 
 
-bool Haptic::SetHaptic(int &mapping){
+bool Haptic::SetHaptic(){
     // double pos[7]={0,0,0,0,0,0,0};
     //    drdMoveTo(pos);
     geometry_msgs::Pose see_pose=scale_pose(ee_pose.pose,"r2h");
@@ -234,8 +230,6 @@ bool Haptic::SetHaptic(int &mapping){
     //          see_pose.position.z-hap_pose.pose.position.z);
     dhdEnableForce(DHD_ON);
     if(pedal_on){
-        switch(mapping){
-            case 1: 
         dhdSetForceAndTorqueAndGripperForce(
                                         //PALETTA FRAME
                                         -cur_ee_force.wrench.force.z,
@@ -244,20 +238,7 @@ bool Haptic::SetHaptic(int &mapping){
                                         -cur_ee_force.wrench.torque.z,
                                         cur_ee_force.wrench.torque.x,
                                         -cur_ee_force.wrench.torque.y,
-                                        grip_val);
-                break;
-            case 2:
-          dhdSetForceAndTorqueAndGripperForce(
-                                        //PALETTA FRAME
-                                        -cur_ee_force.wrench.force.z,
-                                        -cur_ee_force.wrench.force.y,
-                                        -cur_ee_force.wrench.force.x,
-                                        -cur_ee_force.wrench.torque.z,
-                                        -cur_ee_force.wrench.torque.y,
-                                        -cur_ee_force.wrench.torque.x,
-                                        grip_val);
-                break;
-            }
+                                        grip_val); //
     // dhdSetForceAndTorqueAndGripperForce(cur_ee_force.wrench.force.x,
     //                                     cur_ee_force.wrench.force.y,
     //                                     cur_ee_force.wrench.force.z,
@@ -279,7 +260,7 @@ bool Haptic::SetHaptic(int &mapping){
     //                                     -100*(hap_pose.pose.position.z-see_pose.position.z)+1.8,
     //                                     0.0, 0.0, 0.0, -0.1);
 }
-geometry_msgs::Pose Haptic::diff_pose(geometry_msgs::Pose in, int &mapping){
+geometry_msgs::Pose Haptic::diff_pose(geometry_msgs::Pose in){
     tf2::Quaternion q1,q2;
     geometry_msgs::Pose tmp;
 
@@ -291,19 +272,10 @@ geometry_msgs::Pose Haptic::diff_pose(geometry_msgs::Pose in, int &mapping){
     tf2::convert(in.orientation,q2);
     tf2::convert(q2*q1.inverse(),tmp.orientation);
     
-    switch(mapping){
-            case 1: 
-            tmp.position.x=in.position.y-hap_pose_initial.pose.position.y;
-            tmp.position.y=-(in.position.z-hap_pose_initial.pose.position.z);
-            tmp.position.z=-(in.position.x-hap_pose_initial.pose.position.x);
-            break;
-
-            case 2:
-            tmp.position.x=-(in.position.z-hap_pose_initial.pose.position.z);
-            tmp.position.y=-(in.position.y-hap_pose_initial.pose.position.y);
-            tmp.position.z=-(in.position.x-hap_pose_initial.pose.position.x);
-            break;
-        }
+    tmp.position.x=in.position.y-hap_pose_initial.pose.position.y;
+    tmp.position.y=-(in.position.z-hap_pose_initial.pose.position.z);
+    tmp.position.z=-(in.position.x-hap_pose_initial.pose.position.x);
+    
     return tmp;
 }
 
@@ -319,69 +291,70 @@ void Haptic::bias_sensor(){
     }
 }
 
-/* ROSSERVICE
-bool change_mapping(soma_ur5::ch_mapping::Request &req, soma_ur5::ch_mapping::Response &res){
-    //geometry_msgs::Pose new_pose;
-    res.map_out = req.map_in;
-    //mapping = res.map_out;
-    //ROS_INFO("Mapping has been changed: [%d]", mapping);
-    return true;
-    }
-*/
-void Haptic::mapping_callback(const std_msgs::Int32::ConstPtr& msg){
-    map=*msg;
-}
-
 bool Haptic::haptic_loop(){
-    geometry_msgs::PoseStamped h_pose,com_pose, dd_pose;
+    geometry_msgs::PoseStamped h_pose,com_pose;
     geometry_msgs::Pose d_pose, tmp_pose;
+    
+/*
+    geometry_msgs::PoseStamped tmp, paletta_pose;
+    tmp.pose.position.x=0.0;
+    tmp.pose.position.y=-0.137;
+    tmp.pose.position.z=-0.178;
+    tmp.pose.orientation.x=0.002;
+    tmp.pose.orientation.y=0.707;
+    tmp.pose.orientation.z=0.707;
+    tmp.pose.orientation.w=-0.001;
+*/
 
     GetHapticInfo(h_pose.pose);
-    SetHaptic(mapping);
+    SetHaptic();
     if(pedal_on){
         bias_sensor();
         ///R1(rot)=R0*(H0'*H1)
+        d_pose=scale_pose(diff_pose(h_pose.pose),"h2r");
+        
+        //tf::quaternionTFToMsg(
+        //            (utils::Pose2Transform(d_pose)*utils::Pose2Transform(ee_pose_initial.pose)).getRotation(),
+        //            com_pose.pose.orientation);
+        tf2::convert( (utils::Pose2Transform(d_pose)*utils::Pose2Transform(ee_pose_initial.pose)).getRotation(),
+                       com_pose.pose.orientation);
+
         
         ///R1(t)=R0+(H0'*H1)
-
-         if (map.data != 0){
-            mapping = map.data;    
-         }
-
-         d_pose=scale_pose(diff_pose(h_pose.pose, mapping),"h2r");
-                tf2::convert((utils::Pose2Transform(d_pose)*utils::Pose2Transform(ee_pose_initial.pose)).getRotation(),
-                       com_pose.pose.orientation);
-        
-        switch(mapping){
-            case 1: 
-                tmp_pose=d_pose;
-                d_pose.orientation.x=tmp_pose.orientation.y;
-                d_pose.orientation.y=-tmp_pose.orientation.z;
-                d_pose.orientation.z=-tmp_pose.orientation.x;
-
-                break;
-
-            case 2:
-                tmp_pose=d_pose;
-                d_pose.orientation.x=-tmp_pose.orientation.z;
-                d_pose.orientation.y=-tmp_pose.orientation.y;
-                d_pose.orientation.z=-tmp_pose.orientation.x;
-                break;
-            }
+        tmp_pose=d_pose;
+        d_pose.orientation.x=tmp_pose.orientation.y;
+        d_pose.orientation.y=-tmp_pose.orientation.z;
+        d_pose.orientation.z=-tmp_pose.orientation.x;
 
         com_pose.pose.position.x=ee_pose_initial.pose.position.x+d_pose.position.x;
         com_pose.pose.position.y=ee_pose_initial.pose.position.y+d_pose.position.y;
         com_pose.pose.position.z=ee_pose_initial.pose.position.z+d_pose.position.z;
 
         com_pose.pose=utils::Transform2Pose(utils::Pose2Transform(ee_pose_initial.pose)*utils::Pose2Transform(d_pose)); //NEW
+        
+        /*
+        com_pose.pose.position.x=ee_pose_initial.pose.position.x+d_pose.position.y;
+        com_pose.pose.position.y=ee_pose_initial.pose.position.y-d_pose.position.x;
+        com_pose.pose.position.z=ee_pose_initial.pose.position.z+d_pose.position.z;
+        */
+        //com_pose.pose.orientation.x = - tmp_pose.pose.orientation.y;  
+        //com_pose.pose.orientation.y = - tmp_pose.pose.orientation.x;  
+
         com_pose.header.stamp=ros::Time::now();
         com_pose.header.frame_id="base_link";
         pub_robot_com.publish(com_pose);
-     
+
+
+        //ROS_INFO("d_pose: %.3f %.3f %.3f",d_pose.position.x,d_pose.position.y,d_pose.position.z);
+        double Td[16];
+        utils::pose2array(d_pose,Td);
+        ROS_INFO_STREAM(utils::print_matrix(4,4,Td,"d_pose"));
+
+        ROS_INFO("com_pose: %.3f %.3f %.3f",com_pose.pose.position.x,com_pose.pose.position.y,com_pose.pose.position.z);
     } else{
       com_pose.pose = ee_pose.pose;
       pub_robot_com.publish(com_pose);
-    }
+  }
 }
 
 int main(int argc, char **argv){

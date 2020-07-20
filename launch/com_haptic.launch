@@ -1,6 +1,15 @@
 <?xml version="1.0"?>
 <launch>
 	<group ns="ur5">
-		<node pkg="soma_ur5" type="haptic" name="haptic" />
+		<node pkg="soma_ur5" type="haptic" name="haptic">
+		<remap from="/ur5/cmd_gripper" to="/cmd_gripper"/>
+		</node>
 	</group>
+	
+	<node name="paletta_gripper" pkg="rosserial_arduino" type="serial_node.py" respawn="false" output="screen">
+        <param name="port" value="/dev/ttyUSB0"/>
+        <param name="baud" value="57600"/>
+        <remap from="/motor_status" to="/ur5/grip_feedback"/>
+      </node>
+
 </launch>
