@@ -12,7 +12,8 @@ public:
         nh=new ros::NodeHandle();
         ft_sensor=false;
         pub_forces=nh->advertise<geometry_msgs::WrenchStamped>("ee_force",5);
-        pub_transform=nh->advertise<geometry_msgs::TransformStamped>("ee_t",5);
+        pub_forces_bl=nh->advertise<geometry_msgs::WrenchStamped>("ee_force_blink",5);
+        pub_transform=nh->advertise<geometry_msgs::PoseStamped>("ee_t",5);
         sub_ati= nh->subscribe("/ur5/netft_data", 1000, &ATI_Bridge::ati_cb, this);
         sub_ee= nh->subscribe("ee_pose", 1000, &ATI_Bridge::ee_pose_cb, this);
 
@@ -20,7 +21,7 @@ public:
 protected:
     ros::NodeHandle *nh;
     ros::Subscriber sub_ati,sub_ee;
-    ros::Publisher pub_forces, pub_transform;
+    ros::Publisher pub_forces, pub_forces_bl, pub_transform;
     geometry_msgs::PoseStamped cur_pose;
     geometry_msgs::WrenchStamped cur_force, cur_force_in;
     tf2_ros::TransformBroadcaster tf_br;
@@ -36,69 +37,9 @@ protected:
         cur_pose=*msg;
         tf2::Transform Tee;
         tf2::Matrix3x3 Ree;
-        geometry_msgs::WrenchStamped Fee;
+        geometry_msgs::WrenchStamped Fee, FeeBL;
         geometry_msgs::PoseStamped T_pose;
         if(ft_sensor){
-            tf2::convert(msg->pose,Tee);
-            // NOT USED FOR PALETTA
-            tf2::Vector3 vf(cur_force_in.wrench.force.x,
-                            cur_force_in.wrench.force.y,
-                            cur_force_in.wrench.force.z);
-
-            tf2::Vector3 vt(cur_force_in.wrench.torque.x,
-                            cur_force_in.wrench.torque.y,
-                            cur_force_in.wrench.torque.z);
-            
-            /*
-            tf2::Vector3 vf(cur_force.wrench.force.z,
-                            cur_force.wrench.force.y,
-                            -cur_force.wrench.force.x);
-
-            tf2::Vector3 vt(cur_force.wrench.torque.z,
-                            cur_force.wrench.torque.y,
-                            -cur_force.wrench.torque.x);
-            */
-            Ree=Tee.getBasis();
-            vf=Ree*vf;
-            vt=Ree*vt;
-            
-            //ROS_INFO("Ree: \n%f %f %f\n%f %f %f\n%f %f %f",
-            //Ree[0],Ree[1],Ree[2],
-            //Ree[3],Ree[4],Ree[5],
-            //Ree[6],Ree[7],Ree[8]);
-
-            geometry_msgs::TransformStamped ee_t;
-            ee_t.child_frame_id="ee_t_base";
-            ee_t.header.frame_id="base_link";
-            ee_t.header.stamp=ros::Time::now();
-            ee_t.transform.translation.x=msg->pose.position.x;
-            ee_t.transform.translation.y=msg->pose.position.y;
-            ee_t.transform.translation.z=msg->pose.position.z;
-
-            ee_t.transform.rotation.w=1.0;
-            tf_br.sendTransform(ee_t);
-            pub_transform.publish(ee_t);
-            /*
-            Fee.wrench.force.x=vf.x()/10;
-            Fee.wrench.force.y=vf.y()/10;
-            Fee.wrench.force.z=vf.z()/10;
-            Fee.wrench.torque.x=vt.x()/10;
-            Fee.wrench.torque.y=vt.y()/10;
-            Fee.wrench.torque.z=vt.z()/10;
-
-            Fee.header.stamp=ee_t.header.stamp;
-            Fee.header.frame_id="ee_t_base";*/
-            /*
-            T_pose.pose.position.x = Tee.getOrigin().x(); 
-            T_pose.pose.position.y = Tee.getOrigin().y(); 
-            T_pose.pose.position.z = Tee.getOrigin().z();
-            T_pose.pose.orientation.x = Tee.getRotation().x(); 
-            T_pose.pose.orientation.y = Tee.getRotation().y(); 
-            T_pose.pose.orientation.z = Tee.getRotation().z();
-            T_pose.pose.orientation.w = Tee.getRotation().w();
-            pub_transform.publish(T_pose);*/
-            //pub_forces.publish(Fee);
-
             // PALETTA HAND
             try {
                 ros::Time now = ros::Time::now();
@@ -135,8 +76,80 @@ protected:
             Fee.wrench.torque.x = cur_force.wrench.torque.x/5;
             Fee.wrench.torque.y = cur_force.wrench.torque.y/5;
             Fee.wrench.torque.z = cur_force.wrench.torque.z/5;
+            //pub_forces.publish(Fee);
+            
+
+        tf2::convert(msg->pose,Tee);
+            // PALETTA TO BASE LINK FT
+            tf2::Vector3 vf(Fee.wrench.force.x*5,
+                            Fee.wrench.force.y*5,
+                            Fee.wrench.force.z*5);
+
+            tf2::Vector3 vt(Fee.wrench.torque.x*5,
+                            Fee.wrench.torque.y*5,
+                            Fee.wrench.torque.z*5);
+            
+            /*
+            tf2::Vector3 vf(cur_force.wrench.force.z,
+                            cur_force.wrench.force.y,
+                            -cur_force.wrench.force.x);
+
+            tf2::Vector3 vt(cur_force.wrench.torque.z,
+                            cur_force.wrench.torque.y,
+                            -cur_force.wrench.torque.x);
+            */
+            Ree=Tee.getBasis();
+            vf=Ree*vf;
+            vt=Ree*vt;
+            /*
+            T_pose.pose.position.x = Tee.getOrigin().x();
+            T_pose.pose.position.y = Tee.getOrigin().y();
+            T_pose.pose.position.z = Tee.getOrigin().z();
+            T_pose.pose.orientation.x = Tee.getRotation().x();
+            T_pose.pose.orientation.y = Tee.getRotation().y();
+            T_pose.pose.orientation.z = Tee.getRotation().z();
+            T_pose.pose.orientation.w = Tee.getRotation().w();
+            pub_transform.publish(T_pose);
+            */
+            /*
+            ROS_INFO("Ree: \n%f %f %f\n%f %f %f\n%f %f %f",
+            Ree[0],Ree[1],Ree[2],
+            Ree[3],Ree[4],Ree[5],
+            Ree[6],Ree[7],Ree[8]);
+
+            geometry_msgs::TransformStamped ee_t;
+            ee_t.child_frame_id="ee_t_base";
+            ee_t.header.frame_id="base_link";
+            ee_t.header.stamp=ros::Time::now();
+            ee_t.transform.translation.x=msg->pose.position.x;
+            ee_t.transform.translation.y=msg->pose.position.y;
+            ee_t.transform.translation.z=msg->pose.position.z;
+
+            ee_t.transform.rotation.w=1.0;
+            tf_br.sendTransform(ee_t);
+            pub_transform.publish(ee_t);
+            */ 
+            FeeBL.wrench.force.x=vf.x();
+            FeeBL.wrench.force.y=vf.y();
+            FeeBL.wrench.force.z=vf.z();
+            FeeBL.wrench.torque.x=vt.x();
+            FeeBL.wrench.torque.y=vt.y();
+            FeeBL.wrench.torque.z=vt.z();
+
+            FeeBL.header.stamp=Fee.header.stamp;
+            FeeBL.header.frame_id="base_link";
+            /*
+            T_pose.pose.position.x = Tee.getOrigin().x(); 
+            T_pose.pose.position.y = Tee.getOrigin().y(); 
+            T_pose.pose.position.z = Tee.getOrigin().z();
+            T_pose.pose.orientation.x = Tee.getRotation().x(); 
+            T_pose.pose.orientation.y = Tee.getRotation().y(); 
+            T_pose.pose.orientation.z = Tee.getRotation().z();
+            T_pose.pose.orientation.w = Tee.getRotation().w();
+            pub_transform.publish(T_pose);*/
+            pub_forces_bl.publish(FeeBL);
             pub_forces.publish(Fee);
-            }
+        }
     }
 
 
