@@ -39,24 +39,30 @@ classdef teleop_analysis
             obj_id=[self.res.obj_id];
             objects=[self.res.object];
             filename={self.res.filename};
-           
+            
             for i=1:length(self.res)
                 
                     js=self.load_txt_files('.js','data/',{filename{i}}); %Joint States
                     ee_pose=self.load_txt_files('.pose','data/',{filename{i}}); %EE Pose
                     ee_ft=self.load_txt_files('.ft','data/',{filename{i}}); %EE Force/Torque
-                    box_pose=self.load_txt_files('.box_pose','data/',{filename{i}}); %Box Pose
+                    box_pose2=self.load_txt_files('.box_pose','data/',{filename{i}}); %Box Pose
                     
                     time=js{1}(:,1)-js{1}(1,1);
                     
-                    h = floor(size(js,1)/size(box_pose,1));
-                    res = size(js,1) - k*size(box_pose,1);
+                    h = floor(size(js{1},1)/size(box_pose2{1},1));
+                    res = size(js{1},1) - h*size(box_pose2{1},1);
                     
-                    for j=1:size(box_pose,1)-1
-                        for k=1:h 
-                            box_pose(j+1)
-                        end
+%                     for j=1:size(box_pose,1)-1
+%                         for k=1:h 
+%                             box_pose(j+1)
+%                         end
+%                     end
+                    box_pose=[]; 
+                    for j=1:size(box_pose2{1},1)
+                        box_pose = [box_pose ; [box_pose2{1}(i); ones(h,1)*box_pose2{1}(j)]]; 
                     end
+                    box_pose = [box_pose ; ones(res,1)*box_pose(end)];
+                    
                     exp{i} = [time, js{1}(:,2:end)]; % 
                     bpos{i} = box_pose{1}(:,2:4);
                     
