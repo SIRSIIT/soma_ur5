@@ -1,0 +1,16 @@
+FILENAME					OBJECT			SUCCESS	 	SUBJECT		DATE
+=============================================================================================================================================
+
+scoop_teleop_2020-07-17-12-07-59.bag		Apple			1		Enrico		17/07/2020
+scoop_teleop_2020-07-17-15-44-03.bag		Water bottle		1		Enrico		17/07/2020
+scoop_teleop_2020-07-17-15-48-07.bag		Banana			1		Enrico		17/07/2020
+
+scoop_teleop_2020-07-22-17-46-40.bag		Apple			1		Andrea		22/07/2020
+scoop_teleop_2020-07-22-17-54-24.bag		Apple			0		Andrea	 	22/07/2020
+scoop_teleop_2020-07-22-17-58-23.bag		Apple			1		Andrea	 	22/07/2020
+scoop_teleop_2020-07-22-18-18-14.bag		Banana			1		Andrea	 	22/07/2020
+scoop_teleop_2020-07-22-18-28-19.bag		Banana			1		Andrea	 	22/07/2020
+	
+scoop_teleop_2020-07-22-19-14-33.bag		Apple			1		Nando		22/07/2020
+scoop_teleop_2020-07-22-19-18-28.bag		Apple			1		Nando		22/07/2020
+

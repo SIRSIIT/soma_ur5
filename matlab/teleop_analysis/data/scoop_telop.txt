@@ -1,0 +1,18 @@
+RESULTS
+
+************************************
+
+					OBJECT						SUBJECT
+scoop_teleop_2020-07-17-12-07-59.bag  	APPLE			SUCCESS			 ENRICO
+scoop_teleop_2020-07-17-15-44-03.bag	WATERBOTTLE					 ENRICO
+scoop_teleop_2020-07-17-15-48-07.bag	BANANA						 ENRICO
+
+scoop_teleop_2020-07-22-17-46-40.bag	APPLE			success			 ANDREA
+scoop_teleop_2020-07-22-17-54-24.bag	APPLE			fail			 ANDREA
+scoop_teleop_2020-07-22-17-58-23.bag	APPLE			success			 ANDREA
+scoop_teleop_2020-07-22-18-18-14.bag	BANANA			success			 ANDREA
+scoop_teleop_2020-07-22-18-28-19.bag	BANANA			success			 ANDREA
+
+scoop_teleop_2020-07-22-19-14-33.bag	APPLE			success			 NANDO
+scoop_teleop_2020-07-22-19-18-28.bag	APPLE			success			 NANDO
+
