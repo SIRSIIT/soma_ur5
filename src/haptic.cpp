@@ -1,14 +1,13 @@
 #include <soma_ur5/haptic.h>
 #include "netft_rdt_driver/String_cmd.h"
-
-   
-   
+#include "soma_ur5/haptic_guidance.h"
 
 
-Haptic::Haptic(){
+Haptic::Haptic(haptic_guidance &gui) {
     this->nh=new ros::NodeHandle();
     initialize_haptic();
-
+    //this->gui=new haptic_guidance;
+    gui.init();
     pub_hap_pose=nh->advertise<geometry_msgs::PoseStamped>("haptic_pose",5);
     pub_d_pose=nh->advertise<geometry_msgs::PoseStamped>("d_pose",5);
     pub_robot_com=nh->advertise<geometry_msgs::PoseStamped>("goal_pose",5);
@@ -21,6 +20,8 @@ Haptic::Haptic(){
     sub_grip= nh->subscribe("grip_feedback", 1000, &Haptic::grip_callback, this); 
     sub_force= nh->subscribe("ee_force", 1000, &Haptic::ee_force_callback, this);
 
+    sub_force_bl= nh->subscribe("ee_force_blink", 1000, &Haptic::ee_force_bl_callback, this);
+
     sub_mapping= nh->subscribe("mapping", 10, &Haptic::mapping_callback, this);
 
     //nh->getParam("scale_factor", scale_factor);
@@ -31,15 +32,25 @@ Haptic::Haptic(){
     f=boost::bind(&Haptic::config_cb, this, _1, _2);
     config_server.setCallback(f);
 
+    // CAMERA ORIENTATION (MAPPING 4) - rosrun tf tf_echo world kinect2_link 
+    // CHECK THESE VALUES!!!!
+    camera_pose.pose.orientation.x=0.56;//0.542;
+    camera_pose.pose.orientation.y=0.508;//0.527;
+    camera_pose.pose.orientation.z=-0.452;//-0.46;
+    camera_pose.pose.orientation.w=-0.47;//-0.465;
 
 }
 Haptic::~Haptic(){
     dhdClose ();
+
 }
 
 void Haptic::config_cb(soma_ur5::dyn_ur5_hapticConfig &config, uint32_t level) {
     ROS_DEBUG("Reconfigure Request.");
         scale_factor=config.scale_factor;
+
+
+    
 }
 
 
@@ -108,6 +119,10 @@ void Haptic::grip_callback(const geometry_msgs::WrenchStamped::ConstPtr &msg){ /
 
 void Haptic::ee_force_callback(const geometry_msgs::WrenchStamped::ConstPtr &msg){
     cur_ee_force=*msg;
+}
+
+void Haptic::ee_force_bl_callback(const geometry_msgs::WrenchStamped::ConstPtr &msg){
+    cur_ee_force_bl=*msg;
 }
 
 
@@ -183,7 +198,8 @@ bool Haptic::GetHapticInfo(geometry_msgs::Pose &h_pose){
     double tmp[1];
     dhdGetGripperAngleDeg(tmp);
     grip_pos.data=tmp[0];
-    grip_pos.data=840+(tmp[0]/29.534)*(2492-840); // Mapping Gripper->Paletta's Fingers
+        //grip_pos.data=840+(tmp[0]/29.534)*(2492-840); // Mapping Gripper->Paletta's Fingers
+    grip_pos.data=540+(tmp[0]/29.534)*(2492-540); // Mapping Gripper->Paletta's Fingers
 
     /*
     if (grip_pos.data < 1){
@@ -225,13 +241,19 @@ bool Haptic::GetHapticInfo(geometry_msgs::Pose &h_pose){
 }
 
 
-bool Haptic::SetHaptic(int &mapping){
+bool Haptic::SetHaptic(int &mapping, haptic_guidance &gui){
     // double pos[7]={0,0,0,0,0,0,0};
     //    drdMoveTo(pos);
     geometry_msgs::Pose see_pose=scale_pose(ee_pose.pose,"r2h");
     // ROS_INFO("%.5f %.5f %.5f",see_pose.position.x-hap_pose.pose.position.x,
     //          see_pose.position.y-hap_pose.pose.position.y,
     //          see_pose.position.z-hap_pose.pose.position.z);
+    //double fx, fy, fz;
+    //std::tie(fx,fy, fz)=gui.guidance_loop();
+    std::tie(fx,fy, fz)=gui.guidance_loop(ee_pose);
+    std::cerr << fx << std::endl;
+    std::cerr << fy << std::endl;
+    std::cerr << fz << std::endl;
     dhdEnableForce(DHD_ON);
     if(pedal_on){
         switch(mapping){
@@ -257,7 +279,58 @@ bool Haptic::SetHaptic(int &mapping){
                                         -cur_ee_force.wrench.torque.x,
                                         grip_val);
                 break;
-            }
+            
+            case 3:
+            dhdSetForceAndTorqueAndGripperForce(
+                                         cur_ee_force_bl.wrench.force.x/5,
+                                         cur_ee_force_bl.wrench.force.y/5,
+                                         cur_ee_force_bl.wrench.force.z/5,
+                                         cur_ee_force_bl.wrench.torque.x/5,
+                                         cur_ee_force_bl.wrench.torque.y/5,
+                                         cur_ee_force_bl.wrench.torque.z/5,
+                                        grip_val);
+                break;
+
+            case 4:
+            dhdSetForceAndTorqueAndGripperForce(
+                                         fx+cur_ee_force_bl.wrench.force.x/5,
+                                         fy+cur_ee_force_bl.wrench.force.y/5,
+                                         fz+cur_ee_force_bl.wrench.force.z/5,
+                                         cur_ee_force_bl.wrench.torque.x/5,
+                                         cur_ee_force_bl.wrench.torque.y/5,
+                                         cur_ee_force_bl.wrench.torque.z/5,
+                                        grip_val);
+                /*dhdSetForceAndTorqueAndGripperForce(fx,
+                        fy,
+                        fz,
+                        0,
+                        0,
+                        0,
+                        0);*/
+                break;
+
+            case 5: //TO BE VERIFIED
+            dhdSetForceAndTorqueAndGripperForce(
+                                         -cur_ee_force_bl.wrench.force.x/5,
+                                         -cur_ee_force_bl.wrench.force.y/5,
+                                         cur_ee_force_bl.wrench.force.z/5,
+                                         -cur_ee_force_bl.wrench.torque.x/5,
+                                         -cur_ee_force_bl.wrench.torque.y/5,
+                                         cur_ee_force_bl.wrench.torque.z/5,
+                                        grip_val);
+                break;
+
+            case 6:
+            dhdSetForceAndTorqueAndGripperForce( 
+                                        cur_ee_force.wrench.force.y,
+                                        -cur_ee_force.wrench.force.x,
+                                        -cur_ee_force.wrench.force.z,
+                                        cur_ee_force.wrench.torque.y,
+                                        -cur_ee_force.wrench.torque.x,
+                                        -cur_ee_force.wrench.torque.z,
+                                        grip_val);
+                break;
+        }
     // dhdSetForceAndTorqueAndGripperForce(cur_ee_force.wrench.force.x,
     //                                     cur_ee_force.wrench.force.y,
     //                                     cur_ee_force.wrench.force.z,
@@ -292,16 +365,40 @@ geometry_msgs::Pose Haptic::diff_pose(geometry_msgs::Pose in, int &mapping){
     tf2::convert(q2*q1.inverse(),tmp.orientation);
     
     switch(mapping){
-            case 1: 
+            case 1:  // PALETTA FRAME (First-person View)
             tmp.position.x=in.position.y-hap_pose_initial.pose.position.y;
             tmp.position.y=-(in.position.z-hap_pose_initial.pose.position.z);
             tmp.position.z=-(in.position.x-hap_pose_initial.pose.position.x);
             break;
 
-            case 2:
+            case 2: // PALETTA FRAME (First-person View - 90° rot)
             tmp.position.x=-(in.position.z-hap_pose_initial.pose.position.z);
             tmp.position.y=-(in.position.y-hap_pose_initial.pose.position.y);
             tmp.position.z=-(in.position.x-hap_pose_initial.pose.position.x);
+            break;
+
+            case 3: // FIXED FRAME - Base Link (Camera View)
+            tmp.position.x=in.position.x-hap_pose_initial.pose.position.x;
+            tmp.position.y=in.position.y-hap_pose_initial.pose.position.y;
+            tmp.position.z=in.position.z-hap_pose_initial.pose.position.z;
+            break;
+
+            case 4: // FIXED FRAME - Kinect2 Link
+            tmp.position.x=in.position.y-hap_pose_initial.pose.position.y;
+            tmp.position.y=-(in.position.z-hap_pose_initial.pose.position.z);
+            tmp.position.z=-(in.position.x-hap_pose_initial.pose.position.x);
+            break;
+
+            case 5:  // FIXED FRAME - Base Link (Mirrored)
+            tmp.position.x=-(in.position.x-hap_pose_initial.pose.position.x);
+            tmp.position.y=-(in.position.y-hap_pose_initial.pose.position.y);
+            tmp.position.z=in.position.z-hap_pose_initial.pose.position.z;
+            break;
+
+            case 6:  // PALETTA FRAME - (First-person View - Mirrored)
+            tmp.position.x=-(in.position.x-hap_pose_initial.pose.position.x);
+            tmp.position.y=-(in.position.z-hap_pose_initial.pose.position.z);
+            tmp.position.z=-(in.position.y-hap_pose_initial.pose.position.y);
             break;
         }
     return tmp;
@@ -332,12 +429,13 @@ void Haptic::mapping_callback(const std_msgs::Int32::ConstPtr& msg){
     map=*msg;
 }
 
-bool Haptic::haptic_loop(){
+bool Haptic::haptic_loop(haptic_guidance &gui){
     geometry_msgs::PoseStamped h_pose,com_pose, dd_pose;
     geometry_msgs::Pose d_pose, tmp_pose;
-
+    //std::tie(fx,fy,fz)=gui.guidance_loop();
+    //std::cerr << fx << std::endl;
     GetHapticInfo(h_pose.pose);
-    SetHaptic(mapping);
+    SetHaptic(mapping, gui);
     if(pedal_on){
         bias_sensor();
         ///R1(rot)=R0*(H0'*H1)
@@ -348,32 +446,99 @@ bool Haptic::haptic_loop(){
             mapping = map.data;    
          }
 
-         d_pose=scale_pose(diff_pose(h_pose.pose, mapping),"h2r");
-                tf2::convert((utils::Pose2Transform(d_pose)*utils::Pose2Transform(ee_pose_initial.pose)).getRotation(),
-                       com_pose.pose.orientation);
+        d_pose=scale_pose(diff_pose(h_pose.pose, mapping),"h2r");
+         
+        //camera_pose.pose.position = ee_pose.pose.position;
+        
+                //tf2::convert((utils::Pose2Transform(d_pose)).getRotation(),
+                //       dd_pose.pose.orientation);
         
         switch(mapping){
-            case 1: 
-                tmp_pose=d_pose;
+            case 1: // PALETTA FRAME
+                tf2::convert((utils::Pose2Transform(d_pose)*utils::Pose2Transform(ee_pose_initial.pose)).getRotation(),
+                       com_pose.pose.orientation);
+                tmp_pose=d_pose; 
                 d_pose.orientation.x=tmp_pose.orientation.y;
                 d_pose.orientation.y=-tmp_pose.orientation.z;
                 d_pose.orientation.z=-tmp_pose.orientation.x;
 
+                com_pose.pose.position.x=ee_pose_initial.pose.position.x+d_pose.position.x;
+                com_pose.pose.position.y=ee_pose_initial.pose.position.y+d_pose.position.y;
+                com_pose.pose.position.z=ee_pose_initial.pose.position.z+d_pose.position.z;
+
+                com_pose.pose=utils::Transform2Pose(utils::Pose2Transform(ee_pose_initial.pose)*utils::Pose2Transform(d_pose)); //NEW
+        
                 break;
 
-            case 2:
+            case 2: // PALETTA FRAME - 90 DEG ROT
                 tmp_pose=d_pose;
                 d_pose.orientation.x=-tmp_pose.orientation.z;
                 d_pose.orientation.y=-tmp_pose.orientation.y;
                 d_pose.orientation.z=-tmp_pose.orientation.x;
                 break;
+            
+            case 3:
+                tmp_pose=d_pose; // FIXED FRAME (BASE_LINK)
+                //d_pose.orientation.x=tmp_pose.orientation.y;
+                //d_pose.orientation.y=-tmp_pose.orientation.z;
+                //d_pose.orientation.z=-tmp_pose.orientation.x;
+                dd_pose.pose=utils::Transform2Pose(utils::Pose2Transform(d_pose)); //NEW
+                com_pose.pose.position.x =ee_pose_initial.pose.position.x + dd_pose.pose.position.x;
+                com_pose.pose.position.y =ee_pose_initial.pose.position.y + dd_pose.pose.position.y;
+                com_pose.pose.position.z =ee_pose_initial.pose.position.z + dd_pose.pose.position.z;
+                tf2::convert(utils::Pose2Transform(d_pose)*(utils::Pose2Transform(ee_pose_initial.pose)).getRotation(),com_pose.pose.orientation);
+
+                break;
+
+            case 4:
+                tmp_pose=d_pose; // FIXED FRAME (KINECT2_LINK)
+                //d_pose.orientation.x=tmp_pose.orientation.y;
+                //d_pose.orientation.y=-tmp_pose.orientation.z;
+                //d_pose.orientation.z=-tmp_pose.orientation.x;
+                dd_pose.pose=utils::Transform2Pose(utils::Pose2Transform(camera_pose.pose)*utils::Pose2Transform(d_pose)); //NEW
+                com_pose.pose.position.x =ee_pose_initial.pose.position.x + dd_pose.pose.position.x;
+                com_pose.pose.position.y =ee_pose_initial.pose.position.y + dd_pose.pose.position.y;
+                com_pose.pose.position.z =ee_pose_initial.pose.position.z + dd_pose.pose.position.z;
+                //tf2::convert(utils::Pose2Transform(camera_pose.pose)*utils::Pose2Transform(dd_pose.pose)*(utils::Pose2Transform(ee_pose_initial.pose)).getRotation(),com_pose.pose.orientation);
+                tf2::convert(utils::Pose2Transform(d_pose)*(utils::Pose2Transform(ee_pose_initial.pose)).getRotation(),com_pose.pose.orientation);
+
+                break;
+
+            case 5:
+                // FIXED FRAME (BASE_LINK - MIRRORED)
+                tmp_pose=d_pose; 
+                d_pose.orientation.x=-tmp_pose.orientation.x;
+                d_pose.orientation.y=-tmp_pose.orientation.y;
+                //d_pose.orientation.z=-tmp_pose.orientation.x;
+                dd_pose.pose=utils::Transform2Pose(utils::Pose2Transform(d_pose)); //NEW
+                com_pose.pose.position.x =ee_pose_initial.pose.position.x + dd_pose.pose.position.x;
+                com_pose.pose.position.y =ee_pose_initial.pose.position.y + dd_pose.pose.position.y;
+                com_pose.pose.position.z =ee_pose_initial.pose.position.z + dd_pose.pose.position.z;
+                tf2::convert(utils::Pose2Transform(d_pose)*(utils::Pose2Transform(ee_pose_initial.pose)).getRotation(),com_pose.pose.orientation);
+            
+            case 6:
+                // PALETTA FRAME (MIRRORED)
+                tf2::convert((utils::Pose2Transform(d_pose)*utils::Pose2Transform(ee_pose_initial.pose)).getRotation(),
+                       com_pose.pose.orientation);
+                tmp_pose=d_pose; 
+                d_pose.orientation.x=-tmp_pose.orientation.x;
+                d_pose.orientation.y=-tmp_pose.orientation.z;
+                d_pose.orientation.z=-tmp_pose.orientation.y;
+
+                com_pose.pose.position.x=ee_pose_initial.pose.position.x+d_pose.position.x;
+                com_pose.pose.position.y=ee_pose_initial.pose.position.y+d_pose.position.y;
+                com_pose.pose.position.z=ee_pose_initial.pose.position.z+d_pose.position.z;
+
+                com_pose.pose=utils::Transform2Pose(utils::Pose2Transform(ee_pose_initial.pose)*utils::Pose2Transform(d_pose)); //NEW
+
+                break;
             }
+        
+        
+        //com_pose.pose.position.x=camera_pose.pose.position.x+d_pose.position.x;
+        //com_pose.pose.position.y=camera_pose.pose.position.y+d_pose.position.y;
+        //com_pose.pose.position.z=camera_pose.pose.position.z+d_pose.position.z;
 
-        com_pose.pose.position.x=ee_pose_initial.pose.position.x+d_pose.position.x;
-        com_pose.pose.position.y=ee_pose_initial.pose.position.y+d_pose.position.y;
-        com_pose.pose.position.z=ee_pose_initial.pose.position.z+d_pose.position.z;
-
-        com_pose.pose=utils::Transform2Pose(utils::Pose2Transform(ee_pose_initial.pose)*utils::Pose2Transform(d_pose)); //NEW
         com_pose.header.stamp=ros::Time::now();
         com_pose.header.frame_id="base_link";
         pub_robot_com.publish(com_pose);
@@ -387,18 +552,22 @@ bool Haptic::haptic_loop(){
 int main(int argc, char **argv){
 
     ros::init(argc, argv, "haptic_soma");
-    Haptic *hap=new Haptic();
+    //Haptic *hap=new Haptic;
+    haptic_guidance gui;//=new haptic_guidance();
+    Haptic hap(gui);
     ros::Rate rate(100);
+    int a=1;
 
     //    drdStop();
     //dhdSetGravityCompensation(DHD_ON);
-
+    gui.init();
     while(ros::ok()){
         ros::spinOnce();
         rate.sleep();
-        hap->haptic_loop();
+
+        hap.haptic_loop(gui);
     }
-    delete hap;
+    //delete hap;
     return 0;
 
 }

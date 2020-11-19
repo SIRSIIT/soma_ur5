@@ -17,41 +17,48 @@
 #include <dynamic_reconfigure/server.h>
 #include <soma_ur5/dyn_ur5_hapticConfig.h>
 //#include <soma_ur5/ch_mapping.h>
+#include "soma_ur5/haptic_guidance.h"
 
 
 class Haptic{
 
 public:
-    Haptic();
+    //haptic_guidance gui;
+    //Haptic(haptic_guidance());
+    Haptic(haptic_guidance &pippo);
     ~Haptic();
     ros::NodeHandle *nh;
-    bool haptic_loop();
+    bool haptic_loop(haptic_guidance &);
     dynamic_reconfigure::Server<soma_ur5::dyn_ur5_hapticConfig> config_server;
 
+
+
 private:
-    ros::Subscriber sub_pose,sub_ft,sub_grip,sub_force, sub_mapping;
+    ros::Subscriber sub_pose,sub_ft,sub_grip,sub_force, sub_force_bl, sub_mapping;
     ros::Publisher pub_hap_pose,pub_robot_com,pub_grip,pub_pedal, pub_d_pose;
     ros::ServiceClient ft_client;
     //ros::ServiceServer service = nh->advertiseService("change_mapping_server", &Haptic::change_mapping,this);
     ros::Time last_command, aux; 
-    geometry_msgs::PoseStamped ee_pose,hap_pose,hap_pose_initial,ee_pose_initial;
-    geometry_msgs::WrenchStamped cur_ee_force, paletta_torque;
+    geometry_msgs::PoseStamped ee_pose,hap_pose,hap_pose_initial,ee_pose_initial, camera_pose, camera_to_base;
+    geometry_msgs::WrenchStamped cur_ee_force, cur_ee_force_bl, paletta_torque;
 
     double scale_factor;
     bool pedal_on;
     double grip_val;
     std_msgs::Int32 map;
-    int mapping=1;
+    int mapping=4;
+    double fx,fy,fz;
     int initialize_haptic();
     //bool autonomous_motion(int mapping, geometry_msgs::PoseStamped);
     
     //bool change_mapping(soma_ur5::ch_mapping::Request &request, soma_ur5::ch_mapping::Response &response);
     void mapping_callback(const std_msgs::Int32::ConstPtr& msg);
     bool GetHapticInfo(geometry_msgs::Pose &h_pose);
-    bool SetHaptic(int &);
+    bool SetHaptic(int &, haptic_guidance &);
     void robot_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &msg);
     void grip_callback(const geometry_msgs::WrenchStamped::ConstPtr &msg); //std_msgs::Float64::ConstPtr
     void ee_force_callback(const geometry_msgs::WrenchStamped::ConstPtr &msg);
+    void ee_force_bl_callback(const geometry_msgs::WrenchStamped::ConstPtr &msg);
     bool move_haptic(geometry_msgs::Pose);
     bool goto_initial();
     geometry_msgs::Pose diff_pose(geometry_msgs::Pose, int &);

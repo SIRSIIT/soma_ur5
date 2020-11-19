@@ -18,13 +18,15 @@ find_package(catkin REQUIRED COMPONENTS
   netft_rdt_driver
   std_msgs
   message_generation
+  cv_bridge
 )
 add_definitions(-std=c++11)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
-
+find_package(OpenCV 3.3.1 REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -139,7 +141,9 @@ catkin_package(
 # include_directories(include)
 include_directories(  ${catkin_INCLUDE_DIRS}   include )
 link_directories( ../../devel/lib lib)
-
+include_directories(
+        ${OpenCV_INCLUDE_DIRS}
+)
 ## Declare a C++ library
 # add_library(soma_ur5
 #   src/${PROJECT_NAME}/soma_ur5.cpp
@@ -154,6 +158,7 @@ link_directories( ../../devel/lib lib)
  add_executable(controller src/controller.cpp)
  add_executable(ur5_controller src/ur5_controller_main.cpp)
  add_executable(haptic src/haptic.cpp)
+ #add_executable(haptic_guidance src/haptic_guidance.cpp)
  #add_executable(gazebo_bridge src/gazebo_bridge.cpp)
  #add_executable(pisa_hand_bridge src/pisa_hand_bridge.cpp)
  add_executable(ati_bridge src/ati_bridge.cpp)
@@ -163,12 +168,14 @@ link_directories( ../../devel/lib lib)
  add_executable(collisions src/collisions.cpp)
  add_executable(soma_framework src/soma_framework.cpp)
 
+add_library(haptic_guidance src/haptic_guidance.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
  add_dependencies(controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(ur5_controller ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(haptic ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#add_dependencies(haptic_guidance ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${OpenCV_LIBRARIES})
  #add_dependencies(gazebo_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  #add_dependencies(pisa_hand_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  add_dependencies(ati_bridge ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -182,7 +189,8 @@ add_dependencies(soma_framework ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXP
  target_link_libraries(controller    ${catkin_LIBRARIES}   ur5_kin )
  target_link_libraries(ur5_controller    ${catkin_LIBRARIES})
  target_link_libraries(ur5_model   ${catkin_LIBRARIES}   ur5_kin )
- target_link_libraries(haptic ${catkin_LIBRARIES} drd dhd pthread usb-1.0)
+ target_link_libraries(haptic ${catkin_LIBRARIES} drd dhd pthread usb-1.0 haptic_guidance)
+#target_link_libraries(haptic_guidance ${catkin_LIBRARIES} drd dhd pthread usb-1.0)
  #target_link_libraries(gazebo_bridge   ${catkin_LIBRARIES} )
  #target_link_libraries(pisa_hand_bridge   ${catkin_LIBRARIES} )
  target_link_libraries(ati_bridge   ${catkin_LIBRARIES} )
