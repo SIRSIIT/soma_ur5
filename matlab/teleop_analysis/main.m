@@ -8,13 +8,8 @@ clc
 
 
 ta=teleop_analysis;
-% ec.errorBBox
-% ec.plot_force_and_vel()
-% ec.plot_motor_status()
-[experiments,a] = ta.dataset_generation;
-%%
-
-figure
-for i=1:size(a,1)
-    plot3(a(i,1),a(i,2),a(i,3),'.'),hold on
-end
+% [exp,cs] = ta.dataset_generation;
+[obj_w] = ta.dataset_generation;
+obj_w=obj_w(~cellfun('isempty',obj_w));
+obj = ta.world2obj(obj_w);
+ta.plot_obj_ee_pose(obj)
