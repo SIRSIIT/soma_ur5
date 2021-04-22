@@ -2,7 +2,8 @@ limits:
   #workspace: {x_min: -0.01, x_max: 1.0, y_min: -1, y_max: 0.01, z_min: -0.01, z_max: 0.8}
   workspace: {x_min: -1.01, x_max: 1.0, y_min: -1, y_max: 1.01, z_min: -0.1, z_max: 0.8}  
   #joints: {j0_min: -220, j0_max: 230, j1_min: -180, j1_max: 180, j2_min: -180, j2_max: 180, j3_min: -80, j3_max: 180, j4_min: -180, j4_max: 80, j5_min: -180, j5_max: 180}
-  joints: {j0_min: -2, j0_max: 4.01, j1_min: -3.14, j1_max: 3.14, j2_min: -3.14, j2_max: 3.14, j3_min: -5.14, j3_max: -0.50, j4_min: -1.90, j4_max: -0.6, j5_min: -6.28, j5_max: 6.28}
+  #joints: {j0_min: -3.0, j0_max: 4.01, j1_min: -3.14, j1_max: 3.14, j2_min: -3.14, j2_max: 3.14, j3_min: -5.14, j3_max: -0.50, j4_min: -1.90, j4_max: -0.6, j5_min: -6.28, j5_max: 6.28}
+  joints: {j0_min: -3.0, j0_max: 4.01, j1_min: -3.14, j1_max: 3.14, j2_min: -5.0, j2_max: 3.14, j3_min: -5.14, j3_max: 3.14, j4_min: -5.0, j4_max: 3.0, j5_min: -6.28, j5_max: 6.28}
   max_angle: 15.0
   max_speed: 1.0
 #control_topic: "/vel_based_pos_traj_controller/follow_joint_trajectory"
@@ -15,8 +16,8 @@ solver: "jacobian"  # jacobian, closed_form
 joint_limits:
   shoulder_pan_joint:
     has_position_limits: true
-    min_position: -1.01
-    max_position: 1.0
+    min_position: -3.0 #-1.01
+    max_position: 2.26 #1.0
     has_velocity_limits: true
     max_velocity: 0.01
     has_acceleration_limits: true
@@ -27,8 +28,8 @@ joint_limits:
     max_effort: 28.0
   shoulder_lift_joint:
     has_position_limits: true
-    min_position: -1.01
-    max_position: 1.0
+    min_position: -3.01
+    max_position: 3.0
     has_velocity_limits: true
     max_velocity: 0.01
     has_acceleration_limits: true
@@ -39,8 +40,8 @@ joint_limits:
     max_effort: 28.0
   elbow_joint:
     has_position_limits: true
-    min_position: -1.01
-    max_position: 1.0
+    min_position: -5.0 #-1.01
+    max_position: 3.14 #1.0
     has_velocity_limits: true
     max_velocity: 0.01
     has_acceleration_limits: true
@@ -51,8 +52,8 @@ joint_limits:
     max_effort: 28.0
   wrist_1_joint:
     has_position_limits: true
-    min_position: -1.01
-    max_position: 1.0
+    min_position: -5.0 #-1.01
+    max_position: 3.14 #1.0
     has_velocity_limits: true
     max_velocity: 0.01
     has_acceleration_limits: true
@@ -63,8 +64,8 @@ joint_limits:
     max_effort: 28.0
   wrist_2_joint:
     has_position_limits: true
-    min_position: -1.01
-    max_position: 1.0
+    min_position: -5.0 #-1.01
+    max_position: 3.0 #1.0
     has_velocity_limits: true
     max_velocity: 0.01
     has_acceleration_limits: true
@@ -75,8 +76,8 @@ joint_limits:
     max_effort: 28.0
   wrist_3_joint:
     has_position_limits: true
-    min_position: -1.01
-    max_position: 1.0
+    min_position: -6.01
+    max_position: 6.0
     has_velocity_limits: true
     max_velocity: 0.01
     has_acceleration_limits: true

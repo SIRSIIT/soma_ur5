@@ -3,16 +3,19 @@
 #include "soma_ur5/haptic_guidance.h"
 
 
-Haptic::Haptic(haptic_guidance &gui) {
+Haptic::Haptic(haptic_guidance &gui){
+//Haptic::Haptic(){
     this->nh=new ros::NodeHandle();
     initialize_haptic();
     //this->gui=new haptic_guidance;
+
     gui.init();
     pub_hap_pose=nh->advertise<geometry_msgs::PoseStamped>("haptic_pose",5);
     pub_d_pose=nh->advertise<geometry_msgs::PoseStamped>("d_pose",5);
     pub_robot_com=nh->advertise<geometry_msgs::PoseStamped>("goal_pose",5);
+    dbg_robot_com=nh->advertise<geometry_msgs::PoseStamped>("dbg_pose",5);
     pub_grip=nh->advertise<std_msgs::Float32>("cmd_gripper",5); //grip_cmd
-    //pub_grip=nh->advertise<std_msgs::String>("cmd_gripper",5);
+    dbg_pub_grip=nh->advertise<scoop_msgs::Scoop>("dbg_cmd_gripper",5);
     pub_pedal=nh->advertise<std_msgs::Bool>("hap_pedal",5);
     ft_client = nh->serviceClient<netft_rdt_driver::String_cmd>("bias_cmd");
 
@@ -34,10 +37,11 @@ Haptic::Haptic(haptic_guidance &gui) {
 
     // CAMERA ORIENTATION (MAPPING 4) - rosrun tf tf_echo world kinect2_link 
     // CHECK THESE VALUES!!!!
-    camera_pose.pose.orientation.x=0.56;//0.542;
-    camera_pose.pose.orientation.y=0.508;//0.527;
-    camera_pose.pose.orientation.z=-0.452;//-0.46;
-    camera_pose.pose.orientation.w=-0.47;//-0.465;
+    
+    camera_pose.pose.orientation.x=-0.583;
+    camera_pose.pose.orientation.y=0.627;
+    camera_pose.pose.orientation.z=-0.371;
+    camera_pose.pose.orientation.w=0.36;
 
 }
 Haptic::~Haptic(){
@@ -108,6 +112,9 @@ bool Haptic::move_haptic(geometry_msgs::Pose in){
 
 void Haptic::robot_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &msg){
     ee_pose=*msg;
+    if(pedal_on==true) {
+        dbg_robot_com.publish(ee_pose);
+    }
 }
 
 void Haptic::grip_callback(const geometry_msgs::WrenchStamped::ConstPtr &msg){ //std_msgs::Float64::ConstPtr
@@ -167,6 +174,8 @@ int Haptic::initialize_haptic(){
         return -1;
     }
     */
+    dhdEnableExpertMode ();
+    
     dhdEnableForce(DHD_ON);
     dhdSetForceAndTorqueAndGripperForce(0.0,0.0,0.0,0.0,0.0,0.0,0.0);
 
@@ -199,8 +208,11 @@ bool Haptic::GetHapticInfo(geometry_msgs::Pose &h_pose){
     dhdGetGripperAngleDeg(tmp);
     grip_pos.data=tmp[0];
         //grip_pos.data=840+(tmp[0]/29.534)*(2492-840); // Mapping Gripper->Paletta's Fingers
-    grip_pos.data=540+(tmp[0]/29.534)*(2492-540); // Mapping Gripper->Paletta's Fingers
-
+    //grip_pos.data=540+(tmp[0]/29.534)*(2492-540); // Mapping Gripper->Paletta's Fingers (Closed Gripper- Closed Hand)
+    grip_pos.data=540+((29.534-tmp[0])/29.534)*(2492-540); // Mapping Gripper->Paletta's Fingers (Opened Gripper- Closed Hand)
+    //std_msgs::Float32 prev=grip_pos;
+    fake_gripper.data=grip_pos.data;
+    fake_gripper.stamp = ee_pose.header.stamp;
     /*
     if (grip_pos.data < 1){
         cmd.data = "o";
@@ -231,17 +243,23 @@ bool Haptic::GetHapticInfo(geometry_msgs::Pose &h_pose){
         //ros::Time a=ros::Time::now();
         //last_command=ros::Time::now();
         //last_command=a;
-        double t=(aux-last_command).toSec();
-        if (t < 0.5){
+
+        //double t=(aux-last_command).toSec(); //Doppio-tap su pedale
+        //if (t < 0.5){
         pub_grip.publish(grip_pos);
-        }
+        //prev=grip_pos;
+        dbg_pub_grip.publish(fake_gripper);
+        //}
+    }else {
+        dbg_pub_grip.publish(fake_gripper);
     }
     
     return true;
 }
 
 
-bool Haptic::SetHaptic(int &mapping, haptic_guidance &gui){
+bool Haptic::SetHaptic(int &mapping, haptic_guidance &gui, int &hap_gui){
+//bool Haptic::SetHaptic(int &mapping){
     // double pos[7]={0,0,0,0,0,0,0};
     //    drdMoveTo(pos);
     geometry_msgs::Pose see_pose=scale_pose(ee_pose.pose,"r2h");
@@ -250,10 +268,17 @@ bool Haptic::SetHaptic(int &mapping, haptic_guidance &gui){
     //          see_pose.position.z-hap_pose.pose.position.z);
     //double fx, fy, fz;
     //std::tie(fx,fy, fz)=gui.guidance_loop();
-    std::tie(fx,fy, fz)=gui.guidance_loop(ee_pose);
-    std::cerr << fx << std::endl;
-    std::cerr << fy << std::endl;
-    std::cerr << fz << std::endl;
+    nh->getParam("enable_guidance",hap_gui);
+    if (hap_gui==1) {
+        std::tie(fx, fy, fz) = gui.guidance_loop(ee_pose);
+        std::cerr << "Guidance Enabled"<< std::endl;
+    }else{
+        fx=0;fy=0;fz=0;
+    }
+    //std::cerr << hap_gui << std::endl;
+    //std::cerr << fx << std::endl;
+    //std::cerr << fy << std::endl;
+    //std::cerr << fz << std::endl;
     dhdEnableForce(DHD_ON);
     if(pedal_on){
         switch(mapping){
@@ -282,11 +307,11 @@ bool Haptic::SetHaptic(int &mapping, haptic_guidance &gui){
             
             case 3:
             dhdSetForceAndTorqueAndGripperForce(
+                                         -cur_ee_force_bl.wrench.force.y/5,
                                          cur_ee_force_bl.wrench.force.x/5,
-                                         cur_ee_force_bl.wrench.force.y/5,
                                          cur_ee_force_bl.wrench.force.z/5,
+                                         -cur_ee_force_bl.wrench.torque.y/5,
                                          cur_ee_force_bl.wrench.torque.x/5,
-                                         cur_ee_force_bl.wrench.torque.y/5,
                                          cur_ee_force_bl.wrench.torque.z/5,
                                         grip_val);
                 break;
@@ -300,13 +325,15 @@ bool Haptic::SetHaptic(int &mapping, haptic_guidance &gui){
                                          cur_ee_force_bl.wrench.torque.y/5,
                                          cur_ee_force_bl.wrench.torque.z/5,
                                         grip_val);
-                /*dhdSetForceAndTorqueAndGripperForce(fx,
+                /*dhdSetForceAndTorqueAndGripperForce(
+                        fx,
                         fy,
                         fz,
                         0,
                         0,
                         0,
-                        0);*/
+                        grip_val);*/
+            //ADD Haptic Guidance Values (fx fy fz)
                 break;
 
             case 5: //TO BE VERIFIED
@@ -372,19 +399,19 @@ geometry_msgs::Pose Haptic::diff_pose(geometry_msgs::Pose in, int &mapping){
             break;
 
             case 2: // PALETTA FRAME (First-person View - 90° rot)
-            tmp.position.x=-(in.position.z-hap_pose_initial.pose.position.z);
-            tmp.position.y=-(in.position.y-hap_pose_initial.pose.position.y);
+            tmp.position.x=(in.position.z-hap_pose_initial.pose.position.z);
+            tmp.position.y=(in.position.y-hap_pose_initial.pose.position.y);
             tmp.position.z=-(in.position.x-hap_pose_initial.pose.position.x);
             break;
 
             case 3: // FIXED FRAME - Base Link (Camera View)
-            tmp.position.x=in.position.x-hap_pose_initial.pose.position.x;
-            tmp.position.y=in.position.y-hap_pose_initial.pose.position.y;
+            tmp.position.x=in.position.y-hap_pose_initial.pose.position.y;
+            tmp.position.y=-(in.position.x-hap_pose_initial.pose.position.x);
             tmp.position.z=in.position.z-hap_pose_initial.pose.position.z;
             break;
 
             case 4: // FIXED FRAME - Kinect2 Link
-            tmp.position.x=in.position.y-hap_pose_initial.pose.position.y;
+            tmp.position.x=(in.position.y-hap_pose_initial.pose.position.y);
             tmp.position.y=-(in.position.z-hap_pose_initial.pose.position.z);
             tmp.position.z=-(in.position.x-hap_pose_initial.pose.position.x);
             break;
@@ -430,12 +457,14 @@ void Haptic::mapping_callback(const std_msgs::Int32::ConstPtr& msg){
 }
 
 bool Haptic::haptic_loop(haptic_guidance &gui){
+//bool Haptic::haptic_loop(){
     geometry_msgs::PoseStamped h_pose,com_pose, dd_pose;
     geometry_msgs::Pose d_pose, tmp_pose;
     //std::tie(fx,fy,fz)=gui.guidance_loop();
     //std::cerr << fx << std::endl;
     GetHapticInfo(h_pose.pose);
-    SetHaptic(mapping, gui);
+    SetHaptic(mapping, gui, hap_gui);
+    //SetHaptic(mapping);
     if(pedal_on){
         bias_sensor();
         ///R1(rot)=R0*(H0'*H1)
@@ -472,15 +501,20 @@ bool Haptic::haptic_loop(haptic_guidance &gui){
 
             case 2: // PALETTA FRAME - 90 DEG ROT
                 tmp_pose=d_pose;
-                d_pose.orientation.x=-tmp_pose.orientation.z;
-                d_pose.orientation.y=-tmp_pose.orientation.y;
+                d_pose.orientation.x=tmp_pose.orientation.z;
+                d_pose.orientation.y=tmp_pose.orientation.y;
                 d_pose.orientation.z=-tmp_pose.orientation.x;
+                com_pose.pose.position.x =ee_pose_initial.pose.position.x + d_pose.position.x;
+                com_pose.pose.position.y =ee_pose_initial.pose.position.y + d_pose.position.y;
+                com_pose.pose.position.z =ee_pose_initial.pose.position.z + d_pose.position.z;
+                //tf2::convert(utils::Pose2Transform(d_pose)*(utils::Pose2Transform(ee_pose_initial.pose)).getRotation(),com_pose.pose.orientation);
+                com_pose.pose=utils::Transform2Pose(utils::Pose2Transform(ee_pose_initial.pose)*utils::Pose2Transform(d_pose)); //NEW
                 break;
             
             case 3:
                 tmp_pose=d_pose; // FIXED FRAME (BASE_LINK)
-                //d_pose.orientation.x=tmp_pose.orientation.y;
-                //d_pose.orientation.y=-tmp_pose.orientation.z;
+                d_pose.orientation.x=tmp_pose.orientation.y;
+                d_pose.orientation.y=-tmp_pose.orientation.x;
                 //d_pose.orientation.z=-tmp_pose.orientation.x;
                 dd_pose.pose=utils::Transform2Pose(utils::Pose2Transform(d_pose)); //NEW
                 com_pose.pose.position.x =ee_pose_initial.pose.position.x + dd_pose.pose.position.x;
@@ -492,16 +526,15 @@ bool Haptic::haptic_loop(haptic_guidance &gui){
 
             case 4:
                 tmp_pose=d_pose; // FIXED FRAME (KINECT2_LINK)
-                //d_pose.orientation.x=tmp_pose.orientation.y;
-                //d_pose.orientation.y=-tmp_pose.orientation.z;
-                //d_pose.orientation.z=-tmp_pose.orientation.x;
+                d_pose.orientation.x=-tmp_pose.orientation.x;
+                d_pose.orientation.y=-tmp_pose.orientation.y;
+                d_pose.orientation.z=tmp_pose.orientation.z;
                 dd_pose.pose=utils::Transform2Pose(utils::Pose2Transform(camera_pose.pose)*utils::Pose2Transform(d_pose)); //NEW
                 com_pose.pose.position.x =ee_pose_initial.pose.position.x + dd_pose.pose.position.x;
                 com_pose.pose.position.y =ee_pose_initial.pose.position.y + dd_pose.pose.position.y;
                 com_pose.pose.position.z =ee_pose_initial.pose.position.z + dd_pose.pose.position.z;
                 //tf2::convert(utils::Pose2Transform(camera_pose.pose)*utils::Pose2Transform(dd_pose.pose)*(utils::Pose2Transform(ee_pose_initial.pose)).getRotation(),com_pose.pose.orientation);
                 tf2::convert(utils::Pose2Transform(d_pose)*(utils::Pose2Transform(ee_pose_initial.pose)).getRotation(),com_pose.pose.orientation);
-
                 break;
 
             case 5:
@@ -553,17 +586,17 @@ int main(int argc, char **argv){
 
     ros::init(argc, argv, "haptic_soma");
     //Haptic *hap=new Haptic;
-    haptic_guidance gui;//=new haptic_guidance();
-    Haptic hap(gui);
-    ros::Rate rate(100);
-    int a=1;
+    haptic_guidance gui;//=new haptic_guidance();<--
+    Haptic hap(gui); //<--
 
+    ros::Rate rate(100);
     //    drdStop();
     //dhdSetGravityCompensation(DHD_ON);
-    gui.init();
+    gui.init(); //<--
     while(ros::ok()){
         ros::spinOnce();
         rate.sleep();
+        //hap->haptic_loop();
 
         hap.haptic_loop(gui);
     }

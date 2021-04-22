@@ -30,8 +30,8 @@ void haptic_guidance::init() {
         double j = i / 2.0; zi.push_back(j);
     }
 */
-    goal[0]=0.124*100;
-    goal[1]=0.614*100;
+    goal[0]=0.01*100;
+    goal[1]=-0.614*100;
     goal[2]=0.0651*100;
 
     /*

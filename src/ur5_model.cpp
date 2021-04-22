@@ -80,14 +80,18 @@ UR5_Model::UR5_Model(ros::NodeHandle nh_in)
     //    KDL::Vector Hand_cog(0.01,0,0.12);
     KDL::Vector Hand_cog(0.06,0,0.0);
 
-    // MAPPING EE_LINK TO PALETTA_LINK
+    // MAPPING EE_LINK TO PALETTA_LINK (rosrun tf tf_echo ee_link ur5_paletta_link)
     KDL::RigidBodyInertia Hand_inertia=KDL::RigidBodyInertia(Hand_mass+ati_gamma_mass,Hand_cog,Cube_Rot_Inertia(Hand_mass,0.08,0.12,0.2));
     robot_tree.addSegment(KDL::Segment("hand",KDL::Joint(),KDL::Frame(
-                                           KDL::Rotation(0.0014,1.0,0.0,
-                                                         1.0,-0.0014,-0.0042,
-                                                         -0.0042,0.0,-1.0),KDL::Vector(0.196,0.0,-0.178)),Hand_inertia),"ee_link");
+                                           KDL::Rotation(0.0,0.0,1.0,
+                                                         1.0,0.004,0.0,
+                                                         -0.004,1.0,0.0),KDL::Vector(0.272, 0.0, 0.033)),Hand_inertia),"ee_link");
     // Paletta Old Values: KDL::Vector(0.136,0.0,-0.178): 0.136 is related to translation="0.035" in ur5_soma.urdf.xacro
-
+    /*
+     * KDL::Rotation(0.0014,1.0,0.0,
+                     1.0,-0.0014,-0.0042,
+                     -0.0042,0.0,-1.0)  KDL::Vector( 0.196,0.0,-0.178)
+     */
 
 
     robot_tree.getChain("base_link","hand",robot_chain);
@@ -128,7 +132,8 @@ UR5_Model::UR5_Model(ros::NodeHandle nh_in)
     nh->getParam("limits/max_angle", max_angle);
     nh->getParam("limits/max_speed", max_speed);
     //HINTS
-    sub_goal_pose= nh->subscribe("goal_pose", 1000,  &UR5_Model::goal_pose_callback, this, hints);
+    //sub_goal_pose= nh->subscribe("goal_pose", 1000,  &UR5_Model::goal_pose_callback, this, hints);
+    sub_goal_pose= nh->subscribe("goal_pose", 1000,  &UR5_Model::goal_pose_callback, this);
 }
 
 void UR5_Model::reconfigureRequest(soma_ur5::dyn_ur5_modelConfig& config, uint32_t level) {
@@ -290,6 +295,7 @@ void UR5_Model::goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &m
     for(int i=0;i<robot_chain.getNrOfJoints();i++){
         joints(i)=cur_joints.position.at(i);
     }
+    ROS_WARN("vels1: ");
     vels=calcSpeeds(getEEpose(joints),msg->pose,params.speed_gain*20);
 
 /*
@@ -313,6 +319,7 @@ void UR5_Model::goal_pose_callback(const geometry_msgs::PoseStamped::ConstPtr &m
 
     ROS_WARN("Joints: %f %f %f %f %f %f",target_joints(0),target_joints(1),target_joints(2),target_joints(3),target_joints(4),target_joints(5));
 */
+    ROS_WARN("vels2: ");
     speed_command.publish(safety_enforcer(vels));
 }
 
