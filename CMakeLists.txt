@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   leap_motion
   actionlib_msgs
   netft_rdt_driver
+        scoop_msgs
   std_msgs
   message_generation
   cv_bridge
@@ -59,6 +60,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 ## Generate messages in the 'msg' folder
 # add_message_files(
 #   FILES
+#   Scoop.msg
 #   Message1.msg
 #   Message2.msg
 # )
@@ -128,7 +130,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES soma_ur5
-  CATKIN_DEPENDS roscpp rospy tf2 ur_modern_driver actionlib_msgs
+  CATKIN_DEPENDS roscpp rospy tf2 ur_modern_driver actionlib_msgs message_runtime
   DEPENDS system_lib
 )
 
@@ -161,6 +163,7 @@ include_directories(
  #add_executable(haptic_guidance src/haptic_guidance.cpp)
  #add_executable(gazebo_bridge src/gazebo_bridge.cpp)
  #add_executable(pisa_hand_bridge src/pisa_hand_bridge.cpp)
+add_executable(fingers_teleop src/fingers_teleop.cpp)
  add_executable(ati_bridge src/ati_bridge.cpp)
  add_executable(ur5_model src/ur5_model.cpp)
  #add_executable(leap_commander src/leap_commander.cpp)
@@ -198,6 +201,7 @@ add_dependencies(soma_framework ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXP
  #target_link_libraries(haptic_band ${catkin_LIBRARIES} )
  target_link_libraries(collisions ${catkin_LIBRARIES} ur5_kin )
 target_link_libraries(soma_framework ${catkin_LIBRARIES} ur5_kin )
+target_link_libraries(fingers_teleop ${catkin_LIBRARIES})
 
 #add_executable(haptic_soma src/haptic.cpp)
 #target_link_libraries(haptic ${catkin_LIBRARIES})
