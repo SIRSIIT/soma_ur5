@@ -45,7 +45,7 @@ public:
     std::vector<cv::Mat> X, Y, Z, Gx, Gy, Gz;
     std::vector<int> xi,yi,zi;
     int goal[3];
-    int range[6] = {-50, 50, 0, 100, 0, 100}; // Potential Field Size (in cm)
+    int range[6] = {-10, 100, 0, 100, 0, 100}; // Potential Field Size (in cm)
     std::vector<cv::Mat> potential_field( std::vector<cv::Mat> &, std::vector<cv::Mat> &, std::vector<cv::Mat> &, int []);
     std::vector<cv::Mat> diff_vector(const cv::Mat &, int);
     std::vector<cv::Mat> gradient_computation(std::vector<cv::Mat> &f, cv::Mat &h, std::vector<cv::Mat> &H, int &);

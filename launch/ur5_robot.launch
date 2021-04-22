@@ -26,6 +26,8 @@
 
   <param name="robot_description" command="$(find xacro)/xacro.py '$(find ur_description)/urdf/ur5_joint_limited_robot.urdf.xacro'" unless="$(arg hand)"/>
  
+  <!--param name="robot_description" command="$(find xacro)/xacro.py '$(find ur_description)/urdf/ur5_robot.urdf.xacro'" unless="$(arg hand)"/-->
+
   <param name="use_sim_time" value="false" unless="$(arg simulated)" />
   <param name="use_sim_time" value="true" if="$(arg simulated)" />
 
@@ -58,6 +60,7 @@
   </group>
    
 
+  <include file="$(find ur5_moveit_config)/launch/move_group.launch" />
 
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
     <!-- listens to each part -->
