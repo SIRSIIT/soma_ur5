@@ -26,8 +26,8 @@ const int bt2 = 2;                    // Push button to Open
 const int handle_bt1 = 22;            // Push Button for Handle-Close
 const int handle_bt2 = 23;            // Push Button for Handle-Open
 
-const int SERVO_R = 1;                // Finger Side Servo ID
-const int SERVO_L = 2;                // Paletta Side Servo ID
+const int SERVO_R = 2;                // Finger Side Servo ID
+const int SERVO_L = 1;                // Paletta Side Servo ID
 unsigned int rstart = 2500;           // Servo inital Position (Finger Side)
 unsigned int lstart = 3050;           // Servo Initial Position (Paletta Side)
 unsigned int rstop = 500;             // Servo Final Position (Finger Side)
