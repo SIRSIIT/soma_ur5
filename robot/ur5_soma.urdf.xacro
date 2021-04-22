@@ -33,7 +33,7 @@
 <!--translation="0.035" -->
   <xacro:clamp prefix="$(arg prefix)_" parent="$(arg prefix)_opto_ft_link" translation="0.095" rotation="0.0" hand="0" flange="1" nr="1"/>
   
-  <xacro:pisa_adapter prefix="$(arg prefix)_" parent="$(arg prefix)_clamp_link1" hand="0" nr="" translation="" orientation="90"/> 
+  <xacro:pisa_adapter prefix="$(arg prefix)_" parent="$(arg prefix)_clamp_link1" hand="0" nr="" translation="" orientation="0"/> 
   
   <xacro:paletta prefix="$(arg prefix)_" parent="$(arg prefix)_pisa_adapter_link" configuration="$(arg configuration)" diagonal="$(arg diagonal) " gazebo="$(arg gazebo)"/>
 
